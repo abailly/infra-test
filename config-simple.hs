@@ -23,8 +23,11 @@ main = defaultMain hosts
 -- Edit this to configure propellor!
 hosts :: [Host]
 hosts =
-	[ -- A generic webserver in a Docker container.
-	 Docker.container "webserver" "joeyh/debian-stable"
+	[ host "beta.capitalmatch.com"
+          & Cron.runPropellor "30 * * * *"
+
+	-- A generic webserver in a Docker container.
+	, Docker.container "webserver" "joeyh/debian-stable"
 		& os (System (Debian Stable) "amd64")
 		& Apt.stdSourcesList
 		& Docker.publish "80:80"
