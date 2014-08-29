@@ -23,7 +23,7 @@ main = defaultMain hosts
 -- Edit this to configure propellor!
 hosts :: [Host]
 hosts =
-	[ host "beta.capitalmatch.com"
+	[ host "beta.capital-match.com"
           & Cron.runPropellor "30 * * * *"
 
 	-- A generic webserver in a Docker container.
