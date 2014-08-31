@@ -217,7 +217,7 @@ spin hn hst = do
 		, "else " ++ intercalate " && "
 			[ "cd " ++ localdir
 			, "if ! test -x ./propellor; then make deps build; fi"
-			, "./propellor --boot " ++ hn
+			, "PROPELLOR_DEBUG=1 ./propellor --boot " ++ hn
 			]
 		, "fi"
 		]
