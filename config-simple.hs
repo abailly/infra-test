@@ -25,6 +25,7 @@ hosts :: [Host]
 hosts =
 	[ host "beta.capital-match.com"
           & Cron.runPropellor "30 * * * *"
+          & Apt.serviceInstalledRunning "nginx"
 
 	-- A generic webserver in a Docker container.
 	, Docker.container "webserver" "joeyh/debian-stable"
