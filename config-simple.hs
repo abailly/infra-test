@@ -3,10 +3,10 @@
 
 import Propellor
 import Propellor.CmdLine
-import Propellor.Property.Scheduled
-import qualified Propellor.Property.File as File
+-- import Propellor.Property.Scheduled
+-- import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Apt as Apt
-import qualified Propellor.Property.Network as Network
+-- import qualified Propellor.Property.Network as Network
 --import qualified Propellor.Property.Ssh as Ssh
 import qualified Propellor.Property.Cron as Cron
 --import qualified Propellor.Property.Sudo as Sudo
@@ -15,6 +15,7 @@ import qualified Propellor.Property.User as User
 --import qualified Propellor.Property.Reboot as Reboot
 --import qualified Propellor.Property.Tor as Tor
 import qualified Propellor.Property.Docker as Docker
+import qualified Propellor.Property.Git as Git
 
 main :: IO ()
 main = defaultMain hosts
@@ -26,6 +27,9 @@ hosts =
 	[ host "beta.capital-match.com"
           & Cron.runPropellor "30 * * * *"
           & Apt.serviceInstalledRunning "nginx"
+          & Git.installed
+          -- configure user build
+          & User.accountFor "build"
 
 	-- A generic webserver in a Docker container.
 	, Docker.container "webserver" "joeyh/debian-stable"
