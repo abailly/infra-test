@@ -37,6 +37,13 @@ hosts =
 
         , host "92.243.3.60"
           & Git.installed
+          & Apt.installed ["locales"]
+          & scriptProperty [ "locale-gen en_US.UTF-8" ]
+          & "/etc/default/locale" `File.hasContent`
+             [
+               "LC_ALL=en_US.utf8"
+             ,"LANG=en_US.UTF-8"
+             ]
           & Apt.serviceInstalledRunning "apache2"
           & Apache.modEnabled "ssl"
           & User.accountFor "admin"
