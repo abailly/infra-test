@@ -36,17 +36,15 @@ hosts =
           & User.accountFor "build"
 
         , host "92.243.3.60"
+          & Git.installed
           & Apt.serviceInstalledRunning "apache2"
           & Apache.modEnabled "ssl"
-          & propertyList "atdd.io site"  [
-            File.ownerGroup "/srv/nono-data/atdd.io/_site" "admin" "admin"
-            ,"/srv/nono-data/atdd.io/_site" `File.mode` combineModes [ownerWriteMode, ownerReadMode, ownerExecuteMode, groupReadMode, groupExecuteMode]
-            ,toProp $ Apache.siteEnabled "atdd.io" $ apachecfg "atdd.io" "/srv/nono-data/atdd.io/_site" NoSSL []
-            ]
+          & User.accountFor "admin"
+          & standardHakyllSite "atdd.io" ["www.atdd.io"]
           & propertyList "bailly.me site"  [
             File.ownerGroup "/srv/nono-data/bailly.me/_site" "admin" "admin"
             ,"/srv/nono-data/bailly.me/_site" `File.mode` combineModes [ownerWriteMode, ownerReadMode, ownerExecuteMode, groupReadMode, groupExecuteMode]
-            ,toProp $ Apache.siteEnabled "bailly.me" $ apachecfg "bailly.me" "/srv/nono-data/bailly.me/_site" NoSSL []
+            ,toProp $ Apache.siteEnabled "bailly.me" $ apachecfg "bailly.me" [] "/srv/nono-data/bailly.me/_site" NoSSL []
             ]
 
 
@@ -62,6 +60,15 @@ hosts =
 	--, host "foo.example.com" = ...
 	]
 
+-- | Configures a hakyll-generated site as a vhost served by apache
+standardHakyllSite :: HostName -> [ HostName ] -> Property
+standardHakyllSite siteName aliases = propertyList ("serving " ++ siteName ++ " site")  [
+  File.ownerGroup directory "admin" "admin"
+  ,directory `File.mode` combineModes [ownerWriteMode, ownerReadMode, ownerExecuteMode, groupReadMode, groupExecuteMode]
+  ,toProp $ Apache.siteEnabled siteName $ apachecfg siteName aliases directory NoSSL []
+  ]
+  where
+    directory = "/srv/nono-data/" ++ siteName ++ "/_site"
 
 data VHostSSL = NoSSL
               | WithSSL
@@ -70,11 +77,12 @@ data VHostSSL = NoSSL
 -- | Configuration for apache virtual host
 -- stolen from JoeysSites
 apachecfg :: HostName             -- ^Host's name
+          -> [HostName]             -- ^Host's name
           -> FilePath            -- ^Path to document root
           -> VHostSSL            -- ^Configure SSL virtual host?
           -> Apache.ConfigFile   -- ^Configuration file to modify
           -> Apache.ConfigFile
-apachecfg hn documentRoot withSSL middle
+apachecfg hn aliases documentRoot withSSL middle
   | withSSL == WithSSL = vhost NoSSL  ++ vhost WithSSL
   | otherwise         = vhost NoSSL
   where
@@ -82,7 +90,10 @@ apachecfg hn documentRoot withSSL middle
 		[ "<VirtualHost *:"++show port++">"
 		, "  ServerAdmin arnaud@foldlabs.com"
 		, "  ServerName "++hn++":"++show port
-                , "  DocumentRoot " ++ documentRoot
+                ]
+                ++ map serverAlias aliases ++
+                [
+                  "  DocumentRoot " ++ documentRoot
                 , "  <Directory " ++ documentRoot ++ ">"
 		, "    Options Indexes FollowSymlinks MultiViews"
 		, "    AllowOverride None"
@@ -116,6 +127,7 @@ apachecfg hn documentRoot withSSL middle
 		port = case withSSL of
                         NoSSL   -> 80 :: Int
                         WithSSL -> 443 :: Int
+                serverAlias hostname = "  ServerAlias " ++ hostname
 
 mainhttpscert :: VHostSSL -> Apache.ConfigFile
 mainhttpscert NoSSL   = []
