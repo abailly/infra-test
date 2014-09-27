@@ -82,6 +82,7 @@ apachecfg hn documentRoot withSSL middle
 		, "    Options Indexes FollowSymlinks MultiViews"
 		, "    AllowOverride None"
 		, "    Order allow,deny"
+                , "    Allow from all"
 		, "  </Directory>"
 		, "  ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/"
 		, "  <Directory /usr/lib/cgi-bin>"
