@@ -41,11 +41,8 @@ hosts =
           & Apache.modEnabled "ssl"
           & User.accountFor "admin"
           & standardHakyllSite "atdd.io" ["www.atdd.io"]
-          & propertyList "bailly.me site"  [
-            File.ownerGroup "/srv/nono-data/bailly.me/_site" "admin" "admin"
-            ,"/srv/nono-data/bailly.me/_site" `File.mode` combineModes [ownerWriteMode, ownerReadMode, ownerExecuteMode, groupReadMode, groupExecuteMode]
-            ,toProp $ Apache.siteEnabled "bailly.me" $ apachecfg "bailly.me" [] "/srv/nono-data/bailly.me/_site" NoSSL []
-            ]
+          & standardHakyllSite "bailly.me" []
+          & standardHakyllSite "blog.foldlabs.com" []
 
 
           -- A generic webserver in a Docker container.
