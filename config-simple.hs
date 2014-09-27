@@ -39,7 +39,8 @@ hosts =
           & Apt.serviceInstalledRunning "apache2"
           & Apache.modEnabled "ssl"
           & propertyList "atdd.io site"  [
-            "/srv/nono-data/atdd.io/_site" `File.mode` combineModes [ownerWriteMode, ownerReadMode, ownerExecuteMode, groupReadMode, groupExecuteMode]
+            File.ownerGroup "/srv/nono-data/atdd.io/_site" "admin" "admin"
+            ,"/srv/nono-data/atdd.io/_site" `File.mode` combineModes [ownerWriteMode, ownerReadMode, ownerExecuteMode, groupReadMode, groupExecuteMode]
             ,toProp $ Apache.siteEnabled "atdd.io" $ apachecfg "atdd.io" "/srv/nono-data/atdd.io/_site" NoSSL []
             ]
 
