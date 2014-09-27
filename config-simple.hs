@@ -43,6 +43,11 @@ hosts =
             ,"/srv/nono-data/atdd.io/_site" `File.mode` combineModes [ownerWriteMode, ownerReadMode, ownerExecuteMode, groupReadMode, groupExecuteMode]
             ,toProp $ Apache.siteEnabled "atdd.io" $ apachecfg "atdd.io" "/srv/nono-data/atdd.io/_site" NoSSL []
             ]
+          & propertyList "bailly.me site"  [
+            File.ownerGroup "/srv/nono-data/bailly.me/_site" "admin" "admin"
+            ,"/srv/nono-data/bailly.me/_site" `File.mode` combineModes [ownerWriteMode, ownerReadMode, ownerExecuteMode, groupReadMode, groupExecuteMode]
+            ,toProp $ Apache.siteEnabled "bailly.me" $ apachecfg "bailly.me" "/srv/nono-data/bailly.me/_site" NoSSL []
+            ]
 
 
           -- A generic webserver in a Docker container.
