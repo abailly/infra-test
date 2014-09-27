@@ -4,7 +4,10 @@
 import Propellor
 import Propellor.CmdLine
 -- import Propellor.Property.Scheduled
--- import qualified Propellor.Property.File as File
+import Utility.FileMode
+import System.Posix.Files
+
+import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Apache as Apache
 -- import qualified Propellor.Property.Network as Network
@@ -35,23 +38,11 @@ hosts =
         , host "92.243.3.60"
           & Apt.serviceInstalledRunning "apache2"
           & Apache.modEnabled "ssl"
-          & (Apache.siteEnabled "atdd.io" $ apachecfg "atdd.io" NoSSL
-		[ "  DocumentRoot /srv/nono-data/atdd.io/_site"
-		, "  <Directory /srv/nono-data/atdd.io/_site>"
-		, "    Options Indexes FollowSymlinks MultiViews"
-		, "    AllowOverride None"
-		, "    Order allaw,deny"
-		, "  </Directory>"
-		, ""
-		, "  ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/"
-		, "  <Directory /usr/lib/cgi-bin>"
-		, "    SetHandler cgi-script"
-		, "    Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch"
-		, "  </Directory>"
-                , " ErrorLog ${APACHE_LOG_DIR}/atdd.io.error.log"
-                , " LogLevel warn"
-                , " AccessLog ${APACHE_LOG_DIR}/atdd.io.access.log combined"
-		])
+          & propertyList "atdd.io site"  [
+            "/srv/nono-data/atdd.io/_site" `File.mode` combineModes [ownerWriteMode, ownerReadMode, ownerExecuteMode, groupReadMode, groupExecuteMode]
+            ,toProp $ Apache.siteEnabled "atdd.io" $ apachecfg "atdd.io" "/srv/nono-data/atdd.io/_site" NoSSL []
+            ]
+
 
           -- A generic webserver in a Docker container.
 	, Docker.container "webserver" "joeyh/debian-stable"
@@ -73,10 +64,11 @@ data VHostSSL = NoSSL
 -- | Configuration for apache virtual host
 -- stolen from JoeysSites
 apachecfg :: HostName             -- ^Host's name
+          -> FilePath            -- ^Path to document root
           -> VHostSSL            -- ^Configure SSL virtual host?
           -> Apache.ConfigFile   -- ^Configuration file to modify
           -> Apache.ConfigFile
-apachecfg hn withSSL middle
+apachecfg hn documentRoot withSSL middle
   | withSSL == WithSSL = vhost NoSSL  ++ vhost WithSSL
   | otherwise         = vhost NoSSL
   where
@@ -84,13 +76,25 @@ apachecfg hn withSSL middle
 		[ "<VirtualHost *:"++show port++">"
 		, "  ServerAdmin arnaud@foldlabs.com"
 		, "  ServerName "++hn++":"++show port
+                , "  DocumentRoot " ++ documentRoot
+                , "  <Directory " ++ documentRoot ++ ">"
+		, "    Options Indexes FollowSymlinks MultiViews"
+		, "    AllowOverride None"
+		, "    Order allow,deny"
+		, "  </Directory>"
+		, "  ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/"
+		, "  <Directory /usr/lib/cgi-bin>"
+		, "    SetHandler cgi-script"
+		, "    Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch"
+		, "  </Directory>"
+
 		]
 		++ mainhttpscert ssl
 		++ middle ++
 		[ ""
-		, "  ErrorLog /var/log/apache2/error.log"
-		, "  LogLevel warn"
-		, "  CustomLog /var/log/apache2/access.log combined"
+                , " ErrorLog ${APACHE_LOG_DIR}/"++ hn ++ ".error.log"
+                , " LogLevel warn"
+                , " CustomLog ${APACHE_LOG_DIR}/"++hn++".access.log combined"
 		, "  ServerSignature On"
 		, "  "
 		, "  <Directory \"/usr/share/apache2/icons\">"
