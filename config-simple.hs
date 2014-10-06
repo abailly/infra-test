@@ -35,15 +35,12 @@ hosts =
           -- configure user build
           & User.accountFor "build"
 
+        , host "brightbox"
+          & User.accountFor "admin"
+
         , host "92.243.3.60"
           & Git.installed
-          & Apt.installed ["locales"]
-          & scriptProperty [ "locale-gen en_US.UTF-8" ]
-          & "/etc/default/locale" `File.hasContent`
-             [
-               "LC_ALL=en_US.utf8"
-             ,"LANG=en_US.UTF-8"
-             ]
+          & setDefaultLocale en_us_UTF_8
           & Apt.serviceInstalledRunning "apache2"
           & Apache.modEnabled "ssl"
           & User.accountFor "admin"
@@ -142,3 +139,42 @@ mainhttpscert WithSSL =
 	, "  SSLCertificateChainFile /etc/ssl/certs/startssl.pem"
 	]
 		
+
+data Lang = En
+          | Fr
+
+instance Show Lang where
+  show En = "en"
+  show Fr = "fr"
+   
+data Country = US
+             | FR
+             deriving (Show)
+
+
+data Encoding = UTF_8
+
+instance Show Encoding where
+  show UTF_8 = "UTF-8"
+  
+data Locale = SimpleLocale Lang Country
+            | EncodingLocale Lang Country Encoding
+
+instance Show Locale where
+  show (SimpleLocale l c)     = show l ++ "_" ++ show c
+  show (EncodingLocale l c e) = show l ++ "_" ++ show c ++ "."++ show e
+
+en_us_UTF_8 :: Locale
+en_us_UTF_8 = EncodingLocale En US UTF_8
+
+setDefaultLocale :: Locale -> Property
+setDefaultLocale locale = propertyList ("setting default locale to " ++ localeString) [
+  Apt.installed ["locales"]
+  , scriptProperty [ "locale-gen " ++ localeString ]
+  , "/etc/default/locale" `File.hasContent` [
+    "LC_ALL=" ++ localeString
+    ,"LANG=" ++  localeString
+    ]
+  ]
+  where
+    localeString = show locale 
