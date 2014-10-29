@@ -37,6 +37,7 @@ hosts =
 
         , host "test.atdd.io"
           & Docker.installed
+          & setDefaultLocale en_us_UTF_8
           & Git.installed
           & User.accountFor "admin"
           & Sudo.enabledFor "admin"  -- should probably be restricted to docker only...
