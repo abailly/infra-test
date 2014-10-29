@@ -13,7 +13,7 @@ import qualified Propellor.Property.Apache as Apache
 -- import qualified Propellor.Property.Network as Network
 import qualified Propellor.Property.Ssh as Ssh
 import qualified Propellor.Property.Cron as Cron
---import qualified Propellor.Property.Sudo as Sudo
+import qualified Propellor.Property.Sudo as Sudo
 import qualified Propellor.Property.User as User
 --import qualified Propellor.Property.Hostname as Hostname
 --import qualified Propellor.Property.Reboot as Reboot
@@ -39,6 +39,7 @@ hosts =
           & Docker.installed
           & Git.installed
           & User.accountFor "admin"
+          & Sudo.enabledFor "admin"  -- should probably be restricted to docker only...
           & Ssh.authorizedKeys "admin" (Context "test.atdd.io")
           
         , host "brightbox"
