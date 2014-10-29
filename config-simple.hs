@@ -11,7 +11,7 @@ import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Apache as Apache
 -- import qualified Propellor.Property.Network as Network
---import qualified Propellor.Property.Ssh as Ssh
+import qualified Propellor.Property.Ssh as Ssh
 import qualified Propellor.Property.Cron as Cron
 --import qualified Propellor.Property.Sudo as Sudo
 import qualified Propellor.Property.User as User
@@ -35,6 +35,12 @@ hosts =
           -- configure user build
           & User.accountFor "build"
 
+        , host "test.atdd.io"
+          & Docker.installed
+          & Git.installed
+          & User.accountFor "admin"
+          & Ssh.authorizedKeys "admin" (Context "test.atdd.io")
+          
         , host "brightbox"
           & User.accountFor "admin"
 
