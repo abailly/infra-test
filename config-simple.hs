@@ -44,12 +44,12 @@ hosts =
           & Sudo.enabledFor "admin"  -- should probably be restricted to docker only...
           & Ssh.authorizedKeys "admin" (Context "test.atdd.io")
           & Firewall.installed
-          & Firewall.addRule (Rule INPUT ACCEPT (Ctstate [ESTABLISHED,RELATED]))
-          & Firewall.addRule (Rule INPUT ACCEPT (IFace "lo"))
-          & Firewall.addRule (Rule INPUT ACCEPT (Proto TCP :- Port 22))
-          & Firewall.addRule (Rule INPUT ACCEPT (Proto TCP :- Port 80))
-          & Firewall.addRule (Rule INPUT ACCEPT (Proto TCP :- Port 443))
-          & Firewall.addRule (Rule INPUT DROP   NoRule)
+          & Firewall.rule INPUT ACCEPT (Ctstate [ESTABLISHED,RELATED])
+          & Firewall.rule INPUT ACCEPT (IFace "lo")
+          & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 22)
+          & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 80)
+          & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 443)
+          & Firewall.rule INPUT DROP   Everything
           
         , host "brightbox"
           & User.accountFor "admin"
