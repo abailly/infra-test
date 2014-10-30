@@ -20,6 +20,7 @@ import qualified Propellor.Property.User as User
 --import qualified Propellor.Property.Tor as Tor
 import qualified Propellor.Property.Docker as Docker
 import qualified Propellor.Property.Git as Git
+import Propellor.Property.Firewall as Firewall
 
 main :: IO ()
 main = defaultMain hosts
@@ -42,6 +43,8 @@ hosts =
           & User.accountFor "admin"
           & Sudo.enabledFor "admin"  -- should probably be restricted to docker only...
           & Ssh.authorizedKeys "admin" (Context "test.atdd.io")
+          & Firewall.installed
+          & Firewall.addRule (Rule INPUT ACCEPT (Proto TCP :- Port 22))
           
         , host "brightbox"
           & User.accountFor "admin"
