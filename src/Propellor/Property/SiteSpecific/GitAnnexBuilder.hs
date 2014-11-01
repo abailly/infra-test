@@ -65,6 +65,7 @@ tree buildarch = combineProperties "gitannexbuilder tree"
 buildDepsApt :: Property
 buildDepsApt = combineProperties "gitannexbuilder build deps"
 	[ Apt.buildDep ["git-annex"]
+	, Apt.installed ["liblockfile-simple-perl"]
 	, buildDepsNoHaskellLibs
 	, "git-annex source build deps installed" ==> Apt.buildDepIn builddir
 	]
@@ -98,6 +99,7 @@ standardAutoBuilderContainer dockerImage arch buildminute timeout = Docker.conta
 	& tree arch
 	& buildDepsApt
 	& autobuilder arch (show buildminute ++ " * * * *") timeout
+	& Docker.tweaked
 
 androidAutoBuilderContainer :: (System -> Docker.Image) -> Cron.CronTimes -> TimeOut -> Host
 androidAutoBuilderContainer dockerImage crontimes timeout =
@@ -108,20 +110,18 @@ androidAutoBuilderContainer dockerImage crontimes timeout =
 -- Android is cross-built in a Debian i386 container, using the Android NDK.
 androidContainer :: (System -> Docker.Image) -> Docker.ContainerName -> Property -> FilePath -> Host
 androidContainer dockerImage name setupgitannexdir gitannexdir = Docker.container name
-	(dockerImage $ System (Debian Stable) "i386")
-	& os (System (Debian Stable) "i386")
+	(dockerImage osver)
+	& os osver
 	& Apt.stdSourcesList
 	& Apt.installed ["systemd"]
+	& Docker.tweaked
 	& User.accountFor builduser
 	& File.dirExists gitbuilderdir
 	& File.ownerGroup homedir builduser builduser
-	& buildDepsNoHaskellLibs
+	& buildDepsApt
 	& flagFile chrootsetup ("/chrootsetup")
 		`requires` setupgitannexdir
-	-- TODO: automate installing haskell libs
-	-- (Currently have to run
-	-- git-annex/standalone/android/install-haskell-packages
-	-- which is not fully automated.)
+	& flagFile haskellpkgsinstalled ("/haskellpkgsinstalled")
   where
 	-- Use git-annex's android chroot setup script, which will install
 	-- ghc-android and the NDK, all build deps, etc, in the home
@@ -129,6 +129,10 @@ androidContainer dockerImage name setupgitannexdir gitannexdir = Docker.containe
 	chrootsetup = scriptProperty
 		[ "cd " ++ gitannexdir ++ " && ./standalone/android/buildchroot-inchroot"
 		]
+	haskellpkgsinstalled = userScriptProperty "builder"
+		[ "cd " ++ gitannexdir ++ " && ./standalone/android/install-haskell-packages"
+		]
+	osver = System (Debian Testing) "i386" -- once jessie is released, use: (Stable "jessie")
 
 -- armel builder has a companion container using amd64 that
 -- runs the build first to get TH splices. They need
@@ -139,7 +143,6 @@ armelCompanionContainer dockerImage = Docker.container "armel-git-annex-builder-
 	& os (System (Debian Testing) "amd64")
 	& Apt.stdSourcesList
 	& Apt.installed ["systemd"]
-	& Apt.unattendedUpgrades
 	-- This volume is shared with the armel builder.
 	& Docker.volume gitbuilderdir
 	& User.accountFor builduser
@@ -151,13 +154,13 @@ armelCompanionContainer dockerImage = Docker.container "armel-git-annex-builder-
 	& Docker.expose "22"
 	& Apt.serviceInstalledRunning "ssh"
 	& Ssh.authorizedKeys builduser (Context "armel-git-annex-builder")
+	& Docker.tweaked
 
 armelAutoBuilderContainer :: (System -> Docker.Image) -> Cron.CronTimes -> TimeOut -> Host
 armelAutoBuilderContainer dockerImage crontimes timeout = Docker.container "armel-git-annex-builder"
 	(dockerImage $ System (Debian Unstable) "armel")
 	& os (System (Debian Testing) "armel")
 	& Apt.stdSourcesList
-	& Apt.unattendedUpgrades
 	& Apt.installed ["systemd"]
 	& Apt.installed ["openssh-client"]
 	& Docker.link "armel-git-annex-builder-companion" "companion"
@@ -172,6 +175,7 @@ armelAutoBuilderContainer dockerImage crontimes timeout = Docker.container "arme
 		`requires` tree "armel"
 	& Ssh.keyImported SshRsa builduser (Context "armel-git-annex-builder")
 	& trivial writecompanionaddress
+	& Docker.tweaked
   where
 	writecompanionaddress = scriptProperty
 		[ "echo \"$COMPANION_PORT_22_TCP_ADDR\" > " ++ homedir </> "companion_address"
