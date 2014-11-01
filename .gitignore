@@ -7,3 +7,4 @@ Setup
 Setup.hi
 Setup.o
 docker
+.dir-locals.el
