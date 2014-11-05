@@ -41,5 +41,5 @@ binaryEnabledFor bin user = prop `requires` Apt.installed ["sudo"]
 				[ containsLine "/etc/sudoers" "#includedir /etc/sudoers.d"
 				, dirExists "/etc/sudoers.d"
 				, containsLine ("/etc/sudoers.d/" ++ user)
-								  (user ++ "ALL= NOPASSWD: " ++ bin)
+								  (user ++ " ALL= NOPASSWD: " ++ bin)
 				]
