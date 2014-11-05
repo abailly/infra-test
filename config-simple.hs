@@ -35,15 +35,17 @@ hosts =
           & Git.installed
           -- configure user build
           & User.accountFor "build"
+		  & Ssh.keyImported SshRsa "build" (Context "beta.capital-match.com")
 		  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
-		  & Sudo.binaryEnabledFor "/usr/bin/docker" "build" 
+		  & Sudo.binaryEnabledFor "/usr/bin/docker" "build"
+		  & Git.clonedBare "build" "git@bitbucket.org:abailly/capital-match.git" "/home/build/capital-match.git"
 
         , host "test.atdd.io"
           & Docker.installed
           & setDefaultLocale en_us_UTF_8
           & Git.installed
           & User.accountFor "admin"
-          & Sudo.enabledFor "admin"  -- should probably be restricted to docker only...
+          & Sudo.binaryEnabledFor "/usr/bin/docker" "admin"
           & Ssh.authorizedKeys "admin" (Context "test.atdd.io")
           & Firewall.installed
           & Firewall.rule INPUT ACCEPT (Ctstate [ESTABLISHED,RELATED])

@@ -91,3 +91,32 @@ cloned owner url dir mbranch = check originurl (property desc checkout)
 			-- installed here.
 			, Just "git update-server-info"
 			]
+
+-- | Specified git repository is cloned to the specified directory as a bare repository.
+--
+-- This is useful to setup a central or remotely accessible repository.
+-- If the firectory exists with some other content, it will be recursively
+-- deleted. 
+--
+-- TODO: refactor to extract common stuff with standard cloning				
+clonedBare :: UserName -> RepoUrl -> FilePath -> Property
+clonedBare owner url dir = check originurl (property desc checkout)
+	`requires` installed
+  where
+	desc = "git cloned " ++ url ++ " to " ++ dir
+	gitconfig = dir </> ".git/config"
+	originurl = ifM (doesFileExist gitconfig)
+		( do
+			v <- catchDefaultIO Nothing $ headMaybe . lines <$>
+				readProcess "git" ["config", "--file", gitconfig, "remote.origin.url"]
+			return (v /= Just url)
+		, return True
+		)
+	checkout = do
+		liftIO $ do
+			whenM (doesDirectoryExist dir) $
+				removeDirectoryRecursive dir
+			createDirectoryIfMissing True (takeDirectory dir)
+		ensureProperty $
+				  userScriptProperty owner $
+				  [ "git clone --bare " ++ shellEscape url ++ " " ++ shellEscape dir ++ " < /dev/null" ]
