@@ -38,10 +38,10 @@ hosts =
 		  & Ssh.keyImported SshRsa "build" (Context "beta.capital-match.com")
 		  & File.containsLines "/home/build/.ssh/config"
 		  [ "Host bitbucket.org"
-				  , "User git"
-				  , "Hostname bitbucket.org"
-				  , "PreferredAuthentications publickey"
-				  , "IdentityFile \"/home/build/.ssh/id_rsa\""
+				  , "\tUser git"
+				  , "\tHostname bitbucket.org"
+				  , "\tPreferredAuthentications publickey"
+				  , "\tIdentityFile \"/home/build/.ssh/id_rsa\""
 				  ]
 
 		  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
