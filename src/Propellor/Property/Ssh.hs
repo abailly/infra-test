@@ -10,7 +10,8 @@ module Propellor.Property.Ssh (
 	keyImported,
 	knownHost,
 	authorizedKeys,
-	listenPort
+	listenPort,
+	knownExternalHost
 ) where
 
 import Propellor
@@ -154,6 +155,21 @@ knownHost hosts hn user = property desc $
 		warningMessage $ "no configred sshPubKey for " ++ hn
 		return FailedChange
 
+-- | Adds some external host's public key to the known_hosts file for a user
+-- This requires ssh to be installed and the 'ssh-keyscan' program to run
+knownExternalHost :: HostName -> UserName -> Property
+knownExternalHost hn user = property desc go
+  where
+	desc = ("add key for " ++ hn ++ " to known_hosts for " ++ user)
+	go = do
+		f <- liftIO $ dotFile "known_hosts" user
+		ensureProperty $ combineProperties desc
+			[ File.dirExists (takeDirectory f)
+			, File.ownerGroup f user user
+			, userScriptProperty user $ [ "/usr/bin/ssh-keyscan " ++ shellEscape hn ++ " > " ++ f ]
+			]
+
+							
 -- | Makes a user have authorized_keys from the PrivData
 authorizedKeys :: UserName -> Context -> Property
 authorizedKeys user context = withPrivData (SshAuthorizedKeys user) context $ \get ->

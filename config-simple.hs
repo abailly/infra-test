@@ -43,7 +43,7 @@ hosts =
 				  , "\tPreferredAuthentications publickey"
 				  , "\tIdentityFile \"/home/build/.ssh/id_rsa\""
 				  ]
-
+		  & Ssh.knownExternalHost "bitbucket.org" "build"
 		  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
 		  & Sudo.binaryEnabledFor "/usr/bin/docker" "build"
 		  & Git.clonedBare "build" "git@bitbucket.org:abailly/capital-match.git" "/home/build/capital-match.git"
