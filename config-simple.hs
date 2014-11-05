@@ -36,6 +36,7 @@ hosts =
           -- configure user build
           & User.accountFor "build"
 		  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
+		  & Sudo.binaryEnabledFor "/usr/bin/docker" "build" 
 
         , host "test.atdd.io"
           & Docker.installed
