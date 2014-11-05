@@ -35,6 +35,7 @@ hosts =
           & Git.installed
           -- configure user build
           & User.accountFor "build"
+		  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
 
         , host "test.atdd.io"
           & Docker.installed

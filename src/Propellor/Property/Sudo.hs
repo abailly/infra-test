@@ -30,3 +30,16 @@ enabledFor user = property desc go `requires` Apt.installed ["sudo"]
 	modify locked ls
 		| sudoline locked `elem` ls = ls
 		| otherwise = ls ++ [sudoline locked]
+
+-- | Allows a user to sudo without password for some restricted binary
+-- Put a file into /etc/sudoers.d/ directory instead of modifying /etc/sudoers and check
+-- the latter contains include directives
+binaryEnabledFor :: FilePath -> UserName -> Property
+binaryEnabledFor bin user = prop `requires` Apt.installed ["sudo"]
+  where
+	prop = propertyList "sudoers includes /etc/sudoers.d directory"
+				[ containsLine "/etc/sudoers" "#includedir /etc/sudoers.d"
+				, dirExists "/etc/sudoers.d"
+				, containsLine ("/etc/sudoers.d/" ++ user)
+								  (user ++ "ALL= NOPASSWD: " ++ bin)
+				]
