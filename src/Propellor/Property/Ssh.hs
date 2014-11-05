@@ -165,8 +165,8 @@ knownExternalHost hn user = property desc go
 		f <- liftIO $ dotFile "known_hosts" user
 		ensureProperty $ combineProperties desc
 			[ File.dirExists (takeDirectory f)
-			, File.ownerGroup f user user
 			, userScriptProperty user $ [ "/usr/bin/ssh-keyscan " ++ shellEscape hn ++ " > " ++ f ]
+			, File.ownerGroup f user user
 			]
 
 							
