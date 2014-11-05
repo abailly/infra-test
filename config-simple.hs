@@ -36,6 +36,14 @@ hosts =
           -- configure user build
           & User.accountFor "build"
 		  & Ssh.keyImported SshRsa "build" (Context "beta.capital-match.com")
+		  & File.containsLines "/home/build/.ssh/config"
+		  [ "Host bitbucket.org"
+				  , "User git"
+				  , "Hostname bitbucket.org"
+				  , "PreferredAuthentications publickey"
+				  , "IdentityFile \"/home/build/.ssh/id_rsa\""
+				  ]
+
 		  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
 		  & Sudo.binaryEnabledFor "/usr/bin/docker" "build"
 		  & Git.clonedBare "build" "git@bitbucket.org:abailly/capital-match.git" "/home/build/capital-match.git"
