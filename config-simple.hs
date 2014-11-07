@@ -47,6 +47,29 @@ hosts =
 		  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
 		  & Sudo.binaryEnabledFor "/usr/bin/docker" "build"
 		  & Git.clonedBare "build" "git@bitbucket.org:abailly/capital-match.git" "/home/build/capital-match.git"
+		  & File.hasContent "/home/build/capital-match.git/hooks/post-receive"
+		  [ "#!/bin/sh"
+				  , "read START STOP BRANCH"
+				  , "echo \"branch: $BRANCH\""
+				  , "expr \"$BRANCH\" : '.*/master' || exit 0"
+				  , "CHANGED=$(git diff --name-status $START..$STOP)"
+				  , "WORK_DIR=/home/build/capital-match/"
+				  , "GIT_WORK_TREE=${WORK_DIR} git checkout -f"
+				  , "cd $WORK_DIR"
+				  , "if echo $CHANGED | grep \"capital-match.cabal\\|project.clj\\|deps/\"  > /dev/null 2>&1 ; then"
+				  , "  cp capital-match.cabal deps/ "
+				  , "  cp ui/project.clj  deps/ "
+				  , "  sudo docker build -t capital/deps deps || exit 1"
+				  , "fi"
+				  , "sudo docker build -t capital/capital-match .  || exit 1"
+				  , "if [ -f /home/build/.capital-match.cid ]; then"
+				  , "  sudo docker kill $(cat /home/build/.capital-match.cid)"
+				  , "  rm /home/build/.capital-match.cid"
+				  , "fi"
+				  , "sudo docker run -d --cidfile=/home/build/.capital-match.cid -p 80:8080 -v /home/build/data:/data capital/capital-match:latest"
+				  ]
+		  & File.mode "/home/build/capital-match.git/hooks/post-receive" (combineModes  (ownerWriteMode:readModes ++ executeModes))
+
 
         , host "test.atdd.io"
           & Docker.installed
@@ -58,6 +81,7 @@ hosts =
           & Firewall.installed
           & Firewall.rule INPUT ACCEPT (Ctstate [ESTABLISHED,RELATED])
           & Firewall.rule INPUT ACCEPT (IFace "lo")
+          & Firewall.rule INPUT ACCEPT (IFace "docker0")
           & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 22)
           & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 80)
           & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 443)
