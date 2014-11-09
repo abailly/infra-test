@@ -89,9 +89,9 @@ hosts =
 				  ]
 		  & Ssh.knownExternalHost "bitbucket.org" "admin"
 		  -- clone infrastructure repositories
-		  & Git.cloned "build" "git@bitbucket.org:attdio/fitnesse-docker.git" "/home/admin/cargo/fitnesse" (Just "master")
-		  & Git.cloned "build" "git@bitbucket.org:attdio/atddio-nginx.git"    "/home/admin/cargo/nginx"    (Just "master")
-		  & Git.cloned "build" "git@bitbucket.org:attdio/faas.git"            "/home/admin/cargo/faas"     (Just "master")
+		  & Git.cloned "admin" "git@bitbucket.org:attdio/fitnesse-docker.git" "/home/admin/cargo/fitnesse" (Just "master")
+		  & Git.cloned "admin" "git@bitbucket.org:attdio/atddio-nginx.git"    "/home/admin/cargo/nginx"    (Just "master")
+		  & Git.cloned "admin" "git@bitbucket.org:attdio/faas.git"            "/home/admin/cargo/faas"     (Just "master")
           & Firewall.installed
           & Firewall.rule INPUT ACCEPT (Ctstate [ESTABLISHED,RELATED])
           & Firewall.rule INPUT ACCEPT (IFace "lo")
