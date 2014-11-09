@@ -89,6 +89,8 @@ hosts =
 				  ]
 		  & Ssh.knownExternalHost "bitbucket.org" "admin"
 		  -- clone infrastructure repositories
+		  & File.dirExists "/home/admin/cargo"
+		  & File.ownerGroup "/home/admin/cargo" "admin" "admin"
 		  & Git.cloned "admin" "git@bitbucket.org:attdio/fitnesse-docker.git" "/home/admin/cargo/fitnesse" (Just "master")
 		  & Git.cloned "admin" "git@bitbucket.org:attdio/atddio-nginx.git"    "/home/admin/cargo/nginx"    (Just "master")
 		  & Git.cloned "admin" "git@bitbucket.org:attdio/faas.git"            "/home/admin/cargo/faas"     (Just "master")
