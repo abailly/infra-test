@@ -72,7 +72,7 @@ hosts =
 
 
         , host "test.atdd.io"
-          & Docker.configured
+          & Docker.installed
           & setDefaultLocale en_us_UTF_8
           & Git.installed
           & User.accountFor "admin"

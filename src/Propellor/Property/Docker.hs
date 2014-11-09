@@ -472,6 +472,7 @@ startContainer cid = boolSystem dockercmd [Param "start", Param $ fromContainerI
 
 
 -- | Simple property for starting a named container
+-- This property is idempotent.
 containerStarted :: ContainerName -> Property
 containerStarted cname = property ("container " ++ cname ++ " is started") $
 						 liftIO $ ifM (boolSystem dockercmd [Param "start", Param $ cname ])
