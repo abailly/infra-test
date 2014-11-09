@@ -14,6 +14,7 @@ module Propellor.Property.Docker (
 	memoryLimited,
 	garbageCollected,
 	tweaked,
+	containerStarted,
 	Image,
 	ContainerName,
 	-- * Container configuration
@@ -468,6 +469,13 @@ stopContainer cid = boolSystem dockercmd [Param "stop", Param $ fromContainerId 
 
 startContainer :: ContainerId -> IO Bool
 startContainer cid = boolSystem dockercmd [Param "start", Param $ fromContainerId cid ]
+
+
+-- | Simple property for starting a named container
+containerStarted :: ContainerName -> Property
+containerStarted cname = property ("container " ++ cname ++ " is started") $
+						 liftIO $ ifM (boolSystem dockercmd [Param "start", Param $ cname ])
+						 ( return MadeChange , return FailedChange)
 
 stoppedContainer :: ContainerId -> Property
 stoppedContainer cid = containerDesc cid $ property desc $ 

@@ -72,7 +72,7 @@ hosts =
 
 
         , host "test.atdd.io"
-          & Docker.installed
+          & Docker.configured
           & setDefaultLocale en_us_UTF_8
           & Git.installed
           & User.accountFor "admin"
@@ -102,6 +102,9 @@ hosts =
           & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 80)
           & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 443)
           & Firewall.rule INPUT DROP   Everything
+		  -- start containers
+		  & Docker.containerStarted "atddio-webapp"
+		  & Docker.containerStarted "atddio-nginx"
           
         , host "brightbox"
           & User.accountFor "admin"
