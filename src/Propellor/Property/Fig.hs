@@ -7,6 +7,7 @@
 module Propellor.Property.Fig  where
 
 import Propellor
+
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Apt as Apt
 
@@ -17,7 +18,6 @@ installed :: Property
 installed = prop `requires` Apt.installed ["docker.io"]
   where
 	prop = combineProperties "fig installed"
-			   [ cmdProperty "installing fig"
-							 [ "curl -L https://github.com/docker/fig/releases/download/1.0.1/fig-`uname -s`-`uname -m` > /usr/local/bin/fig" ]
+			   [ scriptProperty [ "curl -L https://github.com/docker/fig/releases/download/1.0.1/fig-`uname -s`-`uname -m` > /usr/local/bin/fig" ]
 						   , File.mode "/usr/local/bin/fig" (combineModes  (ownerWriteMode:readModes ++ executeModes))
 						   ]
