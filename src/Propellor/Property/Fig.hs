@@ -14,6 +14,10 @@ import qualified Propellor.Property.Apt as Apt
 import Utility.FileMode
 import System.Posix.Files
 
+-- | Installs fig as an executable in `/usr/local/bin/fig`
+--
+-- This is a very crude, unsecure and gross way of doing it, but it works fine as long
+-- as the `uname` is available and corresponds to exsting distributions for fig.
 installed :: Property
 installed = prop `requires` Apt.installed ["docker.io"]
   where
