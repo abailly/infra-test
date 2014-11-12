@@ -21,7 +21,7 @@ import System.Posix.Files
 installed :: Property
 installed = prop `requires` Docker.installed
   where
-	prop = check (doesFileExist "/usr/local/bin/fig") $
+	prop = check (not <$> doesFileExist "/usr/local/bin/fig") $
 		   combineProperties "fig installed"
 			   [ scriptProperty [ "curl -L https://github.com/docker/fig/releases/download/1.0.1/fig-`uname -s`-`uname -m` > /usr/local/bin/fig" ]
 			   , File.mode "/usr/local/bin/fig" (combineModes  (ownerWriteMode:readModes ++ executeModes))
