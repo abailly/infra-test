@@ -8,8 +8,8 @@ module Propellor.Property.Fig  where
 
 import Propellor
 
+import qualified Propellor.Property.Docker as Docker
 import qualified Propellor.Property.File as File
-import qualified Propellor.Property.Apt as Apt
 
 import Utility.FileMode
 import System.Posix.Files
@@ -19,9 +19,10 @@ import System.Posix.Files
 -- This is a very crude, unsecure and gross way of doing it, but it works fine as long
 -- as the `uname` is available and corresponds to exsting distributions for fig.
 installed :: Property
-installed = prop `requires` Apt.installed ["docker.io"]
+installed = prop `requires` Docker.installed
   where
-	prop = combineProperties "fig installed"
+	prop = check (doesFileExist "/usr/local/bin/fig") $
+		   combineProperties "fig installed"
 			   [ scriptProperty [ "curl -L https://github.com/docker/fig/releases/download/1.0.1/fig-`uname -s`-`uname -m` > /usr/local/bin/fig" ]
-						   , File.mode "/usr/local/bin/fig" (combineModes  (ownerWriteMode:readModes ++ executeModes))
-						   ]
+			   , File.mode "/usr/local/bin/fig" (combineModes  (ownerWriteMode:readModes ++ executeModes))
+			   ]

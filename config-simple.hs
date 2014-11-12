@@ -100,9 +100,6 @@ hosts =
           & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 80)
           & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 443)
           & Firewall.rule INPUT DROP   Everything
-		  -- start containers
-		  & Docker.containerStarted "atddio-webapp"
-		  & Docker.containerStarted "atddio-nginx"
           
         , host "brightbox"
           & User.accountFor "admin"
