@@ -7,6 +7,7 @@ import Propellor.CmdLine
 import Utility.FileMode
 import System.Posix.Files
 
+
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Apache as Apache
@@ -21,6 +22,7 @@ import qualified Propellor.Property.User as User
 import qualified Propellor.Property.Docker as Docker
 import qualified Propellor.Property.Git as Git
 import Propellor.Property.Firewall as Firewall
+import Propellor.Property.Fig as Fig
 
 main :: IO ()
 main = defaultMain hosts
@@ -88,12 +90,8 @@ hosts =
 				  , "\tIdentityFile \"/home/admin/.ssh/id_rsa\""
 				  ]
 		  & Ssh.knownExternalHost "bitbucket.org" "admin"
-		  -- clone infrastructure repositories
-		  & File.dirExists "/home/admin/cargo"
-		  & File.ownerGroup "/home/admin/cargo" "admin" "admin"
-		  & Git.cloned "admin" "git@bitbucket.org:attdio/fitnesse-docker.git" "/home/admin/cargo/fitnesse" (Just "master")
-		  & Git.cloned "admin" "git@bitbucket.org:attdio/atddio-nginx.git"    "/home/admin/cargo/nginx"    (Just "master")
-		  & Git.cloned "admin" "git@bitbucket.org:attdio/faas.git"            "/home/admin/cargo/faas"     (Just "master")
+		  -- fig
+		  & Fig.installed
           & Firewall.installed
           & Firewall.rule INPUT ACCEPT (Ctstate [ESTABLISHED,RELATED])
           & Firewall.rule INPUT ACCEPT (IFace "lo")
@@ -102,9 +100,6 @@ hosts =
           & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 80)
           & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 443)
           & Firewall.rule INPUT DROP   Everything
-		  -- start containers
-		  & Docker.containerStarted "atddio-webapp"
-		  & Docker.containerStarted "atddio-nginx"
           
         , host "brightbox"
           & User.accountFor "admin"
