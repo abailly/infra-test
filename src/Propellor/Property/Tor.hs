@@ -25,23 +25,23 @@ hiddenServiceAvailable :: HiddenServiceName -> Int -> Property
 hiddenServiceAvailable hn port = hiddenServiceHostName prop
   where
 	prop = mainConfig `File.containsLines`
-		[ unlines ["HiddenServiceDir", varLib </> hn]
-		, unlines ["HiddenServicePort", show port, "127.0.0.1:" ++ show port]
+		[ unwords ["HiddenServiceDir", varLib </> hn]
+		, unwords ["HiddenServicePort", show port, "127.0.0.1:" ++ show port]
 		]
 		`describe` "hidden service available"
 		`onChange` Service.reloaded "tor"
 	hiddenServiceHostName p =  adjustProperty p $ \satisfy -> do
 		r <- satisfy
 		h <- liftIO $ readFile (varLib </> hn </> "hostname")
-		warningMessage $ unlines ["hidden service hostname:", h]
+		warningMessage $ unwords ["hidden service hostname:", h]
 		return r
 
 hiddenService :: HiddenServiceName -> Int -> Property
 hiddenService hn port = mainConfig `File.containsLines`
-	[ unlines ["HiddenServiceDir", varLib </> hn]
-	, unlines ["HiddenServicePort", show port, "127.0.0.1:" ++ show port]
+	[ unwords ["HiddenServiceDir", varLib </> hn]
+	, unwords ["HiddenServicePort", show port, "127.0.0.1:" ++ show port]
 	]
-	`describe` unlines ["hidden service available:", hn, show port]
+	`describe` unwords ["hidden service available:", hn, show port]
 	`onChange` restarted
 
 hiddenServiceData :: HiddenServiceName -> Context -> Property
@@ -50,7 +50,7 @@ hiddenServiceData hn context = combineProperties desc
 	, installonion "private_key"
 	]
   where
-	desc = unlines ["hidden service data available in", varLib </> hn]
+	desc = unwords ["hidden service data available in", varLib </> hn]
 	installonion f = withPrivData (PrivFile $ varLib </> hn </> f) context $ \getcontent ->
 		property desc $ getcontent $ install $ varLib </> hn </> f
 	install f content = ifM (liftIO $ doesFileExist f)
