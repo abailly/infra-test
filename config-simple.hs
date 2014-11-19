@@ -124,6 +124,9 @@ hosts =
 		& Apt.serviceInstalledRunning "apache2"
 
 	-- add more hosts here...
+        -- new systemsthinking.net
+        , host "178.62.74.139"
+              & Apt.serviceInstalledRunning "apache2"
 	--, host "foo.example.com" = ...
 	]
 
