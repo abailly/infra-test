@@ -5,7 +5,7 @@ import Data.List
 import System.Exit
 import System.Log.Logger
 import System.Log.Formatter
-import System.Log.Handler (setFormatter, LogHandler)
+import System.Log.Handler (setFormatter)
 import System.Log.Handler.Simple
 import System.PosixCompat
 import Control.Exception (bracket)

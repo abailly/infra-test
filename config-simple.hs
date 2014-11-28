@@ -125,8 +125,26 @@ hosts =
 
 	-- add more hosts here...
         -- new systemsthinking.net
-        , host "178.62.74.139"
+        , host "advandenende.eu"
               & Apt.serviceInstalledRunning "apache2"
+              & Apt.serviceInstalledRunning "mariadb"
+              & User.accountFor "admin"
+              & Apt.installed ["php5","libapache2-mod-php5","php5-mysql","locales"]
+
+          & Docker.installed
+          & setDefaultLocale en_us_UTF_8
+          & Git.installed
+          & User.accountFor "admin"
+          & Sudo.binaryEnabledFor "/usr/bin/docker" "admin"
+          & Firewall.installed
+          & Firewall.rule INPUT ACCEPT (Ctstate [ESTABLISHED,RELATED])
+          & Firewall.rule INPUT ACCEPT (IFace "lo")
+          & Firewall.rule INPUT ACCEPT (IFace "docker0")
+          & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 22)
+          & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 80)
+          & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 443)
+          & Firewall.rule INPUT DROP   Everything
+               
 	--, host "foo.example.com" = ...
 	]
 
