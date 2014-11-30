@@ -63,12 +63,13 @@ hosts =
 				  , "  cp ui/project.clj  deps/ "
 				  , "  sudo docker build -t capital/deps deps || exit 1"
 				  , "fi"
-				  , "sudo docker build -t capital/capital-match .  || exit 1"
-				  , "if [ -f /home/build/.capital-match.cid ]; then"
-				  , "  sudo docker kill $(cat /home/build/.capital-match.cid)"
-				  , "  rm /home/build/.capital-match.cid"
+				  , "sudo docker build -t capital/app .  || exit 1"
+				  , "CID_FILE=/home/build/.app.cid"
+				  , "if [ -f $CID_FILE ]; then"
+				  , "  sudo docker kill $(cat $CID_FILE)"
+				  , "  rm $CID_FILE"
 				  , "fi"
-				  , "sudo docker run -d --cidfile=/home/build/.capital-match.cid -p 80:8080 -v /home/build/data:/data capital/capital-match:latest"
+				  , "sudo docker run -d --cidfile=$CID_FILE -p 80:8080 -v /home/build/data:/data capital/app:latest"
 				  ]
 		  & File.mode "/home/build/capital-match.git/hooks/post-receive" (combineModes  (ownerWriteMode:readModes ++ executeModes))
           & Docker.installed
