@@ -71,6 +71,7 @@ hosts =
 				  , "sudo docker run -d --cidfile=/home/build/.capital-match.cid -p 80:8080 -v /home/build/data:/data capital/capital-match:latest"
 				  ]
 		  & File.mode "/home/build/capital-match.git/hooks/post-receive" (combineModes  (ownerWriteMode:readModes ++ executeModes))
+          & Docker.installed
 		  & Fig.installed
 
 
