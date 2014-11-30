@@ -3,6 +3,7 @@
 module Propellor.Property where
 
 import System.Directory
+import System.FilePath
 import Control.Monad
 import Data.Monoid
 import Control.Monad.IfElse
@@ -12,7 +13,6 @@ import Propellor.Types
 import Propellor.Info
 import Propellor.Engine
 import Utility.Monad
-import System.FilePath
 
 -- Constructs a Property.
 property :: Desc -> Propellor Result -> Property
@@ -89,6 +89,15 @@ check c p = adjustProperty p $ \satisfy -> ifM (liftIO c)
 	, return NoChange
 	)
 
+-- | Tries the first property, but if it fails to work, instead uses
+-- the second.
+fallback :: Property -> Property -> Property
+fallback p1 p2 = adjustProperty p1 $ \satisfy -> do
+	r <- satisfy
+	if r == FailedChange
+		then propertySatisfy p2
+		else return r
+
 -- | Marks a Property as trivial. It can only return FailedChange or
 -- NoChange. 
 --
@@ -121,37 +130,6 @@ boolProperty desc a = property desc $ ifM (liftIO a)
 -- | Undoes the effect of a property.
 revert :: RevertableProperty -> RevertableProperty
 revert (RevertableProperty p1 p2) = RevertableProperty p2 p1
-
--- | Starts accumulating the properties of a Host.
---
--- > host "example.com"
--- > 	& someproperty
--- > 	! oldproperty
--- > 	& otherproperty
-host :: HostName -> Host
-host hn = Host hn [] mempty
-
--- | Adds a property to a Host
---
--- Can add Properties and RevertableProperties
-(&) :: IsProp p => Host -> p -> Host
-(Host hn ps is) & p = Host hn (ps ++ [toProp p]) (is <> getInfo p)
-
-infixl 1 &
-
--- | Adds a property to the Host in reverted form.
-(!) :: Host -> RevertableProperty -> Host
-h ! p = h & revert p
-
-infixl 1 !
-
--- | Like (&), but adds the property as the first property of the host.
--- Normally, property order should not matter, but this is useful
--- when it does.
-(&^) :: IsProp p => Host -> p -> Host
-(Host hn ps is) &^ p = Host hn ([toProp p] ++ ps) (getInfo p <> is)
-
-infixl 1 &^
 
 -- Changes the action that is performed to satisfy a property. 
 adjustProperty :: Property -> (Propellor Result -> Propellor Result) -> Property

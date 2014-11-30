@@ -1,0 +1,123 @@
+# NAME
+
+propellor - property-based host configuration management in haskell
+
+# SYNOPSIS
+
+propellor [options]
+
+# DESCRIPTION
+
+`propellor` is a property-based host configuration management program written 
+and configured in haskell.
+
+# MODES OF OPERATION
+
+* The first time you run `propellor`, without any options,
+  it will set up a `~/.propellor/` repository.
+  Edit `~/.propellor/config.hs` to configure it.
+
+* Once propellor is configured, running it without any options will take
+  action as needed to satisfy the configured properties of the local host.
+
+  If there's a central git repository, it will first fetch from the
+  repository, check the gpg signature and merge, and rebuild propellor,
+  so that any configuration changes will immediately take effect.
+
+  If propellor is run by a non-root user without any options, this is
+  the same  as running propellor --spin with the hostname of the local
+  host.
+
+* --spin targethost [targethost ...] [--via relayhost]
+
+  Causes propellor to automatically install itself on the specified target
+  host, or if it's already installed there, push any updates. Propellor is
+  then run on the target host, to satisfy its configured properties.
+
+  A signed git commit is made by --spin, so that any changes you have made
+  get propigated to the target host.
+
+  Multiple target hosts can be specified; propellor will run on each of
+  them in sequence.
+
+  When run with --via, propellor sshes to the relay host and runs
+  `propellor --spin hostname` from there. This can be useful when
+  propellor is installing itself, since most of the data transfer
+  is done between relay host and target host. Note that propellor
+  uses ssh agent forwarding to make this work, and the relay host
+  sees any privdata belonging to the target host.
+
+* --add-key keyid
+
+  Adds a gpg key, which is used to encrypt the privdata.
+
+  If the gpg secret key is present, git is configured to sign commits
+  using this key. Propellor requires signed commits when pulling from
+  a central git repository.
+
+* --list-fields
+
+  Lists all privdata fields that are used by your propellor configuration.
+  The first 2 columns are the field name and context, and are followed by
+  a list of the hosts that use that privdata value.
+
+* --set field context
+
+  Sets a field of privdata. The content is read in from stdin.
+
+* --dump field context
+
+  Outputs the privdata value to stdout.
+
+* --edit field context
+
+  Opens $EDITOR on the privdata value.
+
+* --merge
+
+  Combine multiple --spin commits into a single, more useful commit.
+
+  When using propellor, you may find yourself repeatedly running
+  `propellor --spin` until you get things working the way you like.
+  This results in a lot of git commits being made, with incremental
+  changes.
+  
+  To clean that up to a single commit, use `propellor --merge`. A normal
+  interactive git commit will then be made, consisting of all changes
+  that have been previously committed by --spin, since the last time a
+  normal git commit was made.
+
+  (This will result in a trapezoid pattern in gitk.)
+
+* hostname
+
+  When run with a hostname and no other options, propellor will
+  provision the local host with the configuration of that hostname.
+  This is useful when the local host doesn't yet have its hostname set
+  correctly.
+
+# ENVIRONMENT
+
+Set `PROPELLOR_DEBUG=1` to make propellor output each command it runs and
+other debugging information.
+
+# GIT CONFIGURATION
+
+`git config propellor.debug 1` will configure propellor to output debugging
+information.
+
+The usual git configuration controls which centralized repository (if any)
+propellor pushes and pulls from. 
+
+Additionally, the url of a remote named "deploy", if it exists
+in your ~/.propellor/ repository, is used as the origin url for
+the other repositories.
+
+# SH AUTHOR 
+
+Joey Hess <id@joeyh.name>
+
+<https://propellor.branchable.com/>
+
+Warning: Automatically converted into a man page by mdwn2man. Edit with care.
+

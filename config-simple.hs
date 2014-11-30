@@ -33,7 +33,6 @@ hosts :: [Host]
 hosts =
 	[ host "beta.capital-match.com"
           & Cron.runPropellor "30 * * * *"
-          & Apt.serviceInstalledRunning "nginx"
           & Git.installed
           & Docker.installed
 		  & Fig.installed
@@ -117,16 +116,6 @@ hosts =
           & standardHakyllSite "bailly.me" []
           & standardHakyllSite "blog.foldlabs.com" []
 
-
-          -- A generic webserver in a Docker container.
-	, Docker.container "webserver" "joeyh/debian-stable"
-		& os (System (Debian (Stable "wheezy")) "amd64")
-		& Apt.stdSourcesList
-		& Docker.publish "80:80"
-		& Docker.volume "/var/www:/var/www"
-		& Apt.serviceInstalledRunning "apache2"
-
-	-- add more hosts here...
         -- new systemsthinking.net
         , host "advandenende.eu"
               & Apt.serviceInstalledRunning "apache2"

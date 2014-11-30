@@ -10,7 +10,6 @@ import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Network as Network
 import qualified Propellor.Property.Service as Service
 import qualified Propellor.Property.Ssh as Ssh
-import qualified Propellor.Property.Gpg as Gpg
 import qualified Propellor.Property.Cron as Cron
 import qualified Propellor.Property.Sudo as Sudo
 import qualified Propellor.Property.User as User
@@ -24,6 +23,10 @@ import qualified Propellor.Property.Apache as Apache
 import qualified Propellor.Property.Postfix as Postfix
 import qualified Propellor.Property.Grub as Grub
 import qualified Propellor.Property.Obnam as Obnam
+import qualified Propellor.Property.Gpg as Gpg
+import qualified Propellor.Property.Chroot as Chroot
+import qualified Propellor.Property.Systemd as Systemd
+import qualified Propellor.Property.Debootstrap as Debootstrap
 import qualified Propellor.Property.HostingProvider.DigitalOcean as DigitalOcean
 import qualified Propellor.Property.HostingProvider.CloudAtCost as CloudAtCost
 import qualified Propellor.Property.HostingProvider.Linode as Linode
@@ -44,7 +47,8 @@ hosts =                --                  (o)  `
 	, kite
 	, diatom
 	, elephant
-	] ++ containers ++ monsters
+	, alien
+	] ++ monsters
 
 darkstar :: Host
 darkstar = host "darkstar.kitenet.net"
@@ -52,7 +56,7 @@ darkstar = host "darkstar.kitenet.net"
 
 	& Apt.buildDep ["git-annex"] `period` Daily
 	& Docker.configured
-	! Docker.docked hosts "android-git-annex"
+	! Docker.docked gitAnnexAndroidDev
 
 clam :: Host
 clam = standardSystem "clam.kitenet.net" Unstable "amd64"
@@ -67,7 +71,7 @@ clam = standardSystem "clam.kitenet.net" Unstable "amd64"
 
 	& Docker.configured
 	& Docker.garbageCollected `period` Daily
-	& Docker.docked hosts "webserver"
+	& Docker.docked webserver
 	& File.dirExists "/var/www/html"
 	& File.notPresent "/var/www/html/index.html"
 	& "/var/www/index.html" `File.hasContent` ["hello, world"]
@@ -78,7 +82,23 @@ clam = standardSystem "clam.kitenet.net" Unstable "amd64"
 	& alias "travelling.kitenet.net"
 	! Ssh.listenPort 80
 	! Ssh.listenPort 443
+
+	& Systemd.persistentJournal
+	! Systemd.nspawned meow
 	
+meow :: Systemd.Container
+meow = Systemd.container "meow" (Chroot.debootstrapped (System (Debian Unstable) "amd64") mempty)
+	& Apt.serviceInstalledRunning "uptimed"
+	& alias "meow.kitenet.net"
+
+alien :: Host
+alien = host "alientest.kitenet.net"
+	& ipv4 "104.131.106.199"
+	& Chroot.provisioned
+		( Chroot.debootstrapped (System (Debian Unstable) "amd64") Debootstrap.MinBase "/debian"
+			& Apt.serviceInstalledRunning "uptimed"
+		)
+
 orca :: Host
 orca = standardSystem "orca.kitenet.net" Unstable "amd64"
 	[ "Main git-annex build box." ]
@@ -86,12 +106,13 @@ orca = standardSystem "orca.kitenet.net" Unstable "amd64"
 
 	& Apt.unattendedUpgrades
 	& Postfix.satellite
+	& Systemd.persistentJournal
 	& Docker.configured
-	& Docker.docked hosts "amd64-git-annex-builder"
-	& Docker.docked hosts "i386-git-annex-builder"
-	& Docker.docked hosts "android-git-annex-builder"
-	& Docker.docked hosts "armel-git-annex-builder-companion"
-	& Docker.docked hosts "armel-git-annex-builder"
+	& Docker.docked (GitAnnexBuilder.standardAutoBuilderContainer dockerImage "amd64" 15 "2h")
+	& Docker.docked (GitAnnexBuilder.standardAutoBuilderContainer dockerImage "i386" 45 "2h")
+	& Docker.docked (GitAnnexBuilder.armelCompanionContainer dockerImage)
+	& Docker.docked (GitAnnexBuilder.armelAutoBuilderContainer dockerImage "1 3 * * *" "5h")
+	& Docker.docked (GitAnnexBuilder.androidAutoBuilderContainer dockerImage "1 1 * * *" "3h")
 	& Docker.garbageCollected `period` Daily
 	& Apt.buildDep ["git-annex"] `period` Daily
 	
@@ -110,22 +131,21 @@ kite = standardSystemUnhardened "kite.kitenet.net" Unstable "amd64"
 	& Apt.installed ["linux-image-amd64"]
 	& Linode.chainPVGrub 5
 	& Apt.unattendedUpgrades
-	& Apt.installed ["systemd"]
+	& Systemd.installed
+	& Systemd.persistentJournal
 	& Ssh.hostKeys (Context "kitenet.net")
 	& Ssh.passwordAuthentication True
 	-- Since ssh password authentication is allowed:
 	& Apt.serviceInstalledRunning "fail2ban"
-	& Obnam.backup "/" "33 1 * * *"
+	& Obnam.backupEncrypted "/" "33 1 * * *"
 		[ "--repository=sftp://joey@eubackup.kitenet.net/~/lib/backup/kite.obnam"
 		, "--client-name=kitenet.net"
-		, "--encrypt-with=98147487"
 		, "--exclude=/var/cache"
 		, "--exclude=/var/tmp"
 		, "--exclude=/home/joey/lib"
 		, "--exclude=.*/tmp/"
 		, "--one-file-system"
-		] Obnam.OnlyClient
-		`requires` Gpg.keyImported "98147487" "root"
+		] Obnam.OnlyClient (Gpg.GpgKeyId "98147487")
 		`requires` Ssh.keyImported SshRsa "root"
 			(Context "kite.kitenet.net")
 		`requires` Ssh.knownHost hosts "eubackup.kitenet.net" "root"
@@ -193,9 +213,9 @@ diatom = standardSystem "diatom.kitenet.net" (Stable "wheezy") "amd64"
 	& JoeySites.annexWebSite "/srv/git/downloads.git"
 		"downloads.kitenet.net"
 		"840760dc-08f0-11e2-8c61-576b7e66acfd"
-		[("usbackup", "ssh://usbackup.kitenet.net/~/lib/downloads/")]
+		[("eubackup", "ssh://eubackup.kitenet.net/~/lib/downloads/")]
 		`requires` Ssh.keyImported SshRsa "joey" (Context "downloads.kitenet.net")
-		`requires` Ssh.knownHost hosts "usbackup.kitenet.net" "joey"
+		`requires` Ssh.knownHost hosts "eubackup.kitenet.net" "joey"
 	& JoeySites.gitAnnexDistributor
 		& alias "tmp.kitenet.net"
 	& JoeySites.annexWebSite "/srv/git/joey/tmp.git"
@@ -228,20 +248,25 @@ elephant = standardSystem "elephant.kitenet.net" Unstable "amd64"
 	, "(Encrypt all data stored here.)"
 	]
 	& ipv4 "193.234.225.114"
-		& Grub.chainPVGrub "hd0,0" "xen/xvda1" 30
+
+	& Grub.chainPVGrub "hd0,0" "xen/xvda1" 30
 	& Postfix.satellite
 	& Apt.unattendedUpgrades
+	& Systemd.installed
+	& Systemd.persistentJournal
 	& Ssh.hostKeys ctx
 	& sshPubKey "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBAJkoPRhUGT8EId6m37uBdYEtq42VNwslKnc9mmO+89ody066q6seHKeFY6ImfwjcyIjM30RTzEwftuVNQnbEB0="
 	& Ssh.keyImported SshRsa "joey" ctx
 	& Apt.serviceInstalledRunning "swapspace"
-		& alias "eubackup.kitenet.net"
+
+	& alias "eubackup.kitenet.net"
 	& Apt.installed ["obnam", "sshfs", "rsync"]
 	& JoeySites.obnamRepos ["wren", "pell", "kite"]
 	& JoeySites.githubBackup
 	& JoeySites.rsyncNetBackup hosts
 	& JoeySites.backupsBackedupTo hosts "usbackup.kitenet.net" "lib/backup/eubackup"
-		& alias "podcatcher.kitenet.net"
+
+	& alias "podcatcher.kitenet.net"
 	& JoeySites.podcatcher
 	
 	& alias "znc.kitenet.net"
@@ -249,18 +274,18 @@ elephant = standardSystem "elephant.kitenet.net" Unstable "amd64"
 	-- I'd rather this were on diatom, but it needs unstable.
 	& alias "kgb.kitenet.net"
 	& JoeySites.kgbServer
-		& alias "mumble.kitenet.net"
+	
+	& alias "mumble.kitenet.net"
 	& JoeySites.mumbleServer hosts
 	
 	& alias "ns3.kitenet.net"
 	& myDnsSecondary
 	
 	& Docker.configured
-		& Docker.docked hosts "oldusenet-shellbox"
-	& Docker.docked hosts "openid-provider"
+	& Docker.docked oldusenetShellBox
+	& Docker.docked openidProvider
 		`requires` Apt.serviceInstalledRunning "ntp"
-	& Docker.docked hosts "ancient-kitenet"
-
+	& Docker.docked ancientKitenet
 	& Docker.garbageCollected `period` (Weekly (Just 1))
 	
 	-- For https port 443, shellinabox with ssh login to
@@ -282,48 +307,43 @@ elephant = standardSystem "elephant.kitenet.net" Unstable "amd64"
 	----------------------- :                    / -----------------------
 	------------------------ \____, o          ,' ------------------------
 	------------------------- '--,___________,'  -------------------------
-containers :: [Host]
-containers =
-	-- Simple web server, publishing the outside host's /var/www
-	[ standardStableContainer "webserver"
-		& Docker.publish "80:80"
-		& Docker.volume "/var/www:/var/www"
-		& Apt.serviceInstalledRunning "apache2"
+-- Simple web server, publishing the outside host's /var/www
+webserver :: Docker.Container
+webserver = standardStableContainer "webserver"
+	& Docker.publish "80:80"
+	& Docker.volume "/var/www:/var/www"
+	& Apt.serviceInstalledRunning "apache2"
 
-	-- My own openid provider. Uses php, so containerized for security
-	-- and administrative sanity.
-	, standardStableContainer "openid-provider"
-		& alias "openid.kitenet.net"
-		& Docker.publish "8081:80"
-		& OpenId.providerFor ["joey", "liw"]
-			"openid.kitenet.net:8081"
+-- My own openid provider. Uses php, so containerized for security
+-- and administrative sanity.
+openidProvider :: Docker.Container
+openidProvider = standardStableContainer "openid-provider"
+	& alias "openid.kitenet.net"
+	& Docker.publish "8081:80"
+	& OpenId.providerFor ["joey", "liw"]
+		"openid.kitenet.net:8081"
 
-	-- Exhibit: kite's 90's website.
-	, standardStableContainer "ancient-kitenet"
-		& alias "ancient.kitenet.net"
-		& Docker.publish "1994:80"
-		& Apt.serviceInstalledRunning "apache2"
-		& Git.cloned "root" "git://kitenet-net.branchable.com/" "/var/www"
-			(Just "remotes/origin/old-kitenet.net")
-	
-	, standardStableContainer "oldusenet-shellbox"
-		& alias "shell.olduse.net"
-		& Docker.publish "4200:4200"
-		& JoeySites.oldUseNetShellBox
+-- Exhibit: kite's 90's website.
+ancientKitenet :: Docker.Container
+ancientKitenet = standardStableContainer "ancient-kitenet"
+	& alias "ancient.kitenet.net"
+	& Docker.publish "1994:80"
+	& Apt.serviceInstalledRunning "apache2"
+	& Git.cloned "root" "git://kitenet-net.branchable.com/" "/var/www"
+		(Just "remotes/origin/old-kitenet.net")
 
-	-- git-annex autobuilder containers
-	, GitAnnexBuilder.standardAutoBuilderContainer dockerImage "amd64" 15 "2h"
-	, GitAnnexBuilder.standardAutoBuilderContainer dockerImage "i386" 45 "2h"
-	, GitAnnexBuilder.armelCompanionContainer dockerImage
-	, GitAnnexBuilder.armelAutoBuilderContainer dockerImage "1 3 * * *" "5h"
-	, GitAnnexBuilder.androidAutoBuilderContainer dockerImage "1 1 * * *" "3h"
+oldusenetShellBox :: Docker.Container
+oldusenetShellBox = standardStableContainer "oldusenet-shellbox"
+	& alias "shell.olduse.net"
+	& Docker.publish "4200:4200"
+	& JoeySites.oldUseNetShellBox
 
-	-- for development of git-annex for android, using my git-annex
-	-- work tree
-	, let gitannexdir = GitAnnexBuilder.homedir </> "git-annex"
-	  in GitAnnexBuilder.androidContainer dockerImage "android-git-annex" doNothing gitannexdir
-		& Docker.volume ("/home/joey/src/git-annex:" ++ gitannexdir)
-	]
+-- for development of git-annex for android, using my git-annex work tree
+gitAnnexAndroidDev :: Docker.Container
+gitAnnexAndroidDev = GitAnnexBuilder.androidContainer dockerImage "android-git-annex" doNothing gitannexdir
+	& Docker.volume ("/home/joey/src/git-annex:" ++ gitannexdir)
+  where
+	gitannexdir = GitAnnexBuilder.homedir </> "git-annex"
 
 type Motd = [String]
 
@@ -346,9 +366,9 @@ standardSystemUnhardened hn suite arch motd = host hn
 	& Apt.installed ["etckeeper"]
 	& Apt.installed ["ssh"]
 	& GitHome.installedFor "root"
-	& User.hasSomePassword "root" (Context hn)
+	& User.hasSomePassword "root"
 	& User.accountFor "joey"
-	& User.hasSomePassword "joey" (Context hn)
+	& User.hasSomePassword "joey"
 	& Sudo.enabledFor "joey"
 	& GitHome.installedFor "joey"
 	& Apt.installed ["vim", "screen", "less"]
@@ -357,11 +377,11 @@ standardSystemUnhardened hn suite arch motd = host hn
 	& Apt.removed ["exim4", "exim4-daemon-light", "exim4-config", "exim4-base"]
 		`onChange` Apt.autoRemove
 
-standardStableContainer :: Docker.ContainerName -> Host
+standardStableContainer :: Docker.ContainerName -> Docker.Container
 standardStableContainer name = standardContainer name (Stable "wheezy") "amd64"
 
 -- This is my standard container setup, featuring automatic upgrades.
-standardContainer :: Docker.ContainerName -> DebianSuite -> Architecture -> Host
+standardContainer :: Docker.ContainerName -> DebianSuite -> Architecture -> Docker.Container
 standardContainer name suite arch = Docker.container name (dockerImage system)
 	& os system
 	& Apt.stdSourcesList `onChange` Apt.upgrade

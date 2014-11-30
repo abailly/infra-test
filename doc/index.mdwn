@@ -1,8 +1,9 @@
-[[!meta title="propellor: property-based host configuration management in haskell"]]
+[[!meta title="propellor: deploying properties to hosts with haskell"]]
 
 [[!sidebar content="""
 [[Install]]  
 [API documentation](http://hackage.haskell.org/package/propellor)  
+[[Other Documentation|documentation]]
 [Sample config file](http://git.joeyh.name/?p=propellor.git;a=blob;f=config-joey.hs)  
 [[Security]]  
 [[Todo]]  
@@ -11,9 +12,12 @@
 
 [[!inline raw=yes pages="README"]]
 
-## enjoy
-
-Hope you find Propellor fun and useful!
+<table>
+<tr>
+<td width="50%" valign="top">[[!inline feeds=no template=bare pages=footer/column_a]]</td>
+<td widtd="50%" valign="top">[[!inline feeds=no template=bare pages=footer/column_b]]</td>
+</tr>
+</table>
 
 <pre>
                       --     _         ______`|                          ,-.__ 
@@ -23,11 +27,3 @@ Hope you find Propellor fun and useful!
 hosts :: [Host]        --   *             \ | |              '--------'
 hosts =               --                  (o)  `
 </pre>
-
-Propellor is free software, licensed under the BSD license.
-
-You are encouraged to send patches and improve it. See [[contributing]].
-
-## news
-
-[[!inline pages="news/* and !*/Discussion" show="4" archive=yes]]

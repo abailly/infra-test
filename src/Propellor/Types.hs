@@ -3,7 +3,7 @@
 
 module Propellor.Types
 	( Host(..)
-	, Info
+	, Info(..)
 	, getInfo
 	, Propellor(..)
 	, Property(..)
@@ -21,6 +21,8 @@ module Propellor.Types
 	, Context(..)
 	, anyContext
 	, SshKeyType(..)
+	, Val(..)
+	, fromVal
 	, module Propellor.Types.OS
 	, module Propellor.Types.Dns
 	) where
@@ -28,12 +30,16 @@ module Propellor.Types
 import Data.Monoid
 import Control.Applicative
 import System.Console.ANSI
+import System.Posix.Types
 import "mtl" Control.Monad.Reader
 import "MonadCatchIO-transformers" Control.Monad.CatchIO
+import qualified Data.Set as S
+import qualified Propellor.Types.Dns as Dns
 
-import Propellor.Types.Info
 import Propellor.Types.OS
+import Propellor.Types.Chroot
 import Propellor.Types.Dns
+import Propellor.Types.Docker
 import Propellor.Types.PrivData
 
 -- | Everything Propellor knows about a system: Its hostname,
@@ -136,14 +142,58 @@ instance ActionResult Result where
 
 data CmdLine
 	= Run HostName
-	| Spin HostName
-	| Boot HostName
+	| Spin [HostName] (Maybe HostName)
+	| SimpleRun HostName
 	| Set PrivDataField Context
 	| Dump PrivDataField Context
 	| Edit PrivDataField Context
 	| ListFields
 	| AddKey String
+	| Merge
+	| Serialized CmdLine
 	| Continue CmdLine
-	| Chain HostName
-	| Docker HostName
+	| Update (Maybe HostName)
+	| DockerInit HostName
+	| DockerChain HostName String
+	| ChrootChain HostName FilePath Bool Bool
+	| GitPush Fd Fd
 	deriving (Read, Show, Eq)
+
+-- | Information about a host.
+data Info = Info
+	{ _os :: Val System
+	, _privDataFields :: S.Set (PrivDataField, Context)
+	, _sshPubKey :: Val String
+	, _aliases :: S.Set HostName
+	, _dns :: S.Set Dns.Record
+	, _namedconf :: Dns.NamedConfMap
+	, _dockerinfo :: DockerInfo Host
+	, _chrootinfo :: ChrootInfo Host
+	}
+	deriving (Show)
+
+instance Monoid Info where
+	mempty = Info mempty mempty mempty mempty mempty mempty mempty mempty
+	mappend old new = Info
+		{ _os = _os old <> _os new
+		, _privDataFields = _privDataFields old <> _privDataFields new
+		, _sshPubKey = _sshPubKey old <> _sshPubKey new
+		, _aliases = _aliases old <> _aliases new
+		, _dns = _dns old <> _dns new
+		, _namedconf = _namedconf old <> _namedconf new
+		, _dockerinfo = _dockerinfo old <> _dockerinfo new
+		, _chrootinfo = _chrootinfo old <> _chrootinfo new
+		}
+
+data Val a = Val a | NoVal
+	deriving (Eq, Show)
+
+instance Monoid (Val a) where
+	mempty = NoVal
+	mappend old new = case new of
+		NoVal -> old
+		_ -> new
+
+fromVal :: Val a -> Maybe a
+fromVal (Val a) = Just a
+fromVal NoVal = Nothing

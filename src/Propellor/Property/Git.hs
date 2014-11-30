@@ -57,8 +57,9 @@ type Branch = String
 
 -- | Specified git repository is cloned to the specified directory.
 --
--- If the firectory exists with some other content, it will be recursively
--- deleted.
+-- If the directory exists with some other content (either a non-git
+-- repository, or a git repository cloned from some other location),
+-- it will be recursively deleted first.
 --
 -- A branch can be specified, to check out.
 cloned :: UserName -> RepoUrl -> FilePath -> Maybe Branch -> Property
@@ -92,6 +93,7 @@ cloned owner url dir mbranch = check originurl (property desc checkout)
 			, Just "git update-server-info"
 			]
 
+
 -- | Specified git repository is cloned to the specified directory as a bare repository.
 --
 -- This is useful to setup a central or remotely accessible repository.
@@ -120,3 +122,27 @@ clonedBare owner url dir = check originurl (property desc checkout)
 		ensureProperty $
 				  userScriptProperty owner $
 				  [ "git clone --bare " ++ shellEscape url ++ " " ++ shellEscape dir ++ " < /dev/null" ]
+
+isGitDir :: FilePath -> IO Bool
+isGitDir dir = isNothing <$> catchMaybeIO (readProcess "git" ["rev-parse", "--resolve-git-dir", dir])
+
+data GitShared = Shared GroupName | SharedAll | NotShared
+
+bareRepo :: FilePath -> UserName -> GitShared -> Property
+bareRepo repo user gitshared = check (isRepo repo) $ propertyList ("git repo: " ++ repo) $
+	dirExists repo : case gitshared of
+		NotShared ->
+			[ ownerGroup repo user user
+			, userScriptProperty user ["git", "init", "--bare", "--shared=false", repo]
+			]
+		SharedAll ->
+			[ ownerGroup repo user user
+			, userScriptProperty user ["git", "init", "--bare", "--shared=all", repo]
+			]
+		Shared group' ->
+			[ ownerGroup repo user group'
+			, userScriptProperty user ["git", "init", "--bare", "--shared=group", repo]
+			]
+  where
+	isRepo repo' = isNothing <$> catchMaybeIO (readProcess "git" ["rev-parse", "--resolve-git-dir", repo'])
+

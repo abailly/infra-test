@@ -17,6 +17,7 @@ module Propellor.Property.Docker (
 	containerStarted,
 	Image,
 	ContainerName,
+	Container,
 	-- * Container configuration
 	dns,
 	hostname,
@@ -34,24 +35,26 @@ module Propellor.Property.Docker (
 	restartOnFailure,
 	restartNever,
 	-- * Internal use
+	init,
 	chain,
 ) where
 
-import Propellor
-import Propellor.SimpleSh
-import Propellor.Types.Info
+import Propellor hiding (init)
+import Propellor.Types.Docker
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Apt as Apt
-import qualified Propellor.Property.Docker.Shim as Shim
+import qualified Propellor.Shim as Shim
 import Utility.SafeCommand
 import Utility.Path
+import Utility.ThreadScheduler
 
 import Control.Concurrent.Async hiding (link)
 import System.Posix.Directory
 import System.Posix.Process
-import Data.List
+import Prelude hiding (init)
+import Data.List hiding (init)
 import Data.List.Utils
-import qualified Data.Set as S
+import qualified Data.Map as M
 
 installed :: Property
 installed = Apt.installed ["docker.io"]
@@ -70,55 +73,56 @@ configured = prop `requires` installed
 -- only [a-zA-Z0-9_-] are allowed
 type ContainerName = String
 
--- | Starts accumulating the properties of a Docker container.
+-- | A docker container.
+data Container = Container Image Host
+
+instance Hostlike Container where
+	(Container i h) & p = Container i (h & p)
+	(Container i h) &^ p = Container i (h &^ p)
+	getHost (Container _ h) = h
+
+-- | Defines a Container with a given name, image, and properties.
+-- Properties can be added to configure the Container.
 --
 -- > container "web-server" "debian"
 -- >    & publish "80:80"
 -- >    & Apt.installed {"apache2"]
 -- >    & ...
-container :: ContainerName -> Image -> Host
-container cn image = Host hn [] info
+container :: ContainerName -> Image -> Container
+container cn image = Container image (Host cn [] info)
   where
-	info = dockerInfo $ mempty { _dockerImage = Val image }
-	hn = cn2hn cn
+	info = dockerInfo mempty
 
-cn2hn :: ContainerName -> HostName
-cn2hn cn = cn ++ ".docker"
-
--- | Ensures that a docker container is set up and running, finding
--- its configuration in the passed list of hosts.
+-- | Ensures that a docker container is set up and running.
 -- 
 -- The container has its own Properties which are handled by running
 -- propellor inside the container.
 --
 -- When the container's Properties include DNS info, such as a CNAME,
--- that is propigated to the Info of the host(s) it's docked in.
+-- that is propigated to the Info of the Host it's docked in.
 --
 -- Reverting this property ensures that the container is stopped and
 -- removed.
-docked
-	:: [Host]
-	-> ContainerName
-	-> RevertableProperty
-docked hosts cn = RevertableProperty
-	((maybe id propigateInfo mhost) (go "docked" setup))
+docked :: Container -> RevertableProperty
+docked ctr@(Container _ h) = RevertableProperty
+	(propigateContainerInfo ctr (go "docked" setup))
 	(go "undocked" teardown)
   where
+	cn = hostName h
+
 	go desc a = property (desc ++ " " ++ cn) $ do
 		hn <- asks hostName
 		let cid = ContainerId hn cn
-		ensureProperties [findContainer mhost cid cn $ a cid]
-		
-	mhost = findHostNoAlias hosts (cn2hn cn)
+		ensureProperties [a cid (mkContainerInfo cid ctr)]
 
-	setup cid (Container image runparams) =
+	setup cid (ContainerInfo image runparams) =
 		provisionContainer cid
 			`requires`
 		runningContainer cid image runparams
 			`requires`
 		installed
 
-	teardown cid (Container image _runparams) =
+	teardown cid (ContainerInfo image _runparams) =
 		combineProperties ("undocked " ++ fromContainerId cid)
 			[ stoppedContainer cid
 			, property ("cleaned up " ++ fromContainerId cid) $
@@ -128,33 +132,19 @@ docked hosts cn = RevertableProperty
 					]
 			]
 
-propigateInfo :: Host -> Property -> Property
-propigateInfo (Host _ _ containerinfo) p =
-	combineProperties (propertyDesc p) $ p : dnsprops ++ privprops
+propigateContainerInfo :: Container -> Property -> Property
+propigateContainerInfo ctr@(Container _ h) p =
+	propigateInfo ctr p (<> dockerinfo)
   where
-	dnsprops = map addDNS (S.toList $ _dns containerinfo)
-	privprops = map addPrivDataField (S.toList $ _privDataFields containerinfo)
+	dockerinfo = dockerInfo $
+		mempty { _dockerContainers = M.singleton (hostName h) h }
 
-findContainer
-	:: Maybe Host
-	-> ContainerId
-	-> ContainerName
-	-> (Container -> Property)
-	-> Property
-findContainer mhost cid cn mk = case mhost of
-	Nothing -> cantfind
-	Just h -> maybe cantfind mk (mkContainer cid h)
+mkContainerInfo :: ContainerId -> Container -> ContainerInfo
+mkContainerInfo cid@(ContainerId hn _cn) (Container img h) = 
+	ContainerInfo img runparams
   where
-	cantfind = containerDesc cid $ property "" $ do
-		liftIO $ warningMessage $
-			"missing definition for docker container \"" ++ cn2hn cn
-		return FailedChange
-
-mkContainer :: ContainerId -> Host -> Maybe Container
-mkContainer cid@(ContainerId hn _cn) h = Container
-	<$> fromVal (_dockerImage info)
-	<*> pure (map (\mkparam -> mkparam hn) (_dockerRunParams info))
-  where
+	runparams = map (\(DockerRunParam mkparam) -> mkparam hn)
+		(_dockerRunParams info)
 	info = _dockerinfo $ hostInfo h'
 	h' = h
 		-- Restart by default so container comes up on
@@ -208,7 +198,7 @@ memoryLimited = "/etc/default/grub" `File.containsLine` cfg
 	cmdline = "cgroup_enable=memory swapaccount=1"
 	cfg = "GRUB_CMDLINE_LINUX_DEFAULT=\""++cmdline++"\""
 
-data Container = Container Image [RunParam]
+data ContainerInfo = ContainerInfo Image [RunParam]
 
 -- | Parameters to pass to `docker run` when creating a container.
 type RunParam = String
@@ -302,7 +292,10 @@ restartNever = runProp "restart" "no"
 
 -- | A container is identified by its name, and the host
 -- on which it's deployed.
-data ContainerId = ContainerId HostName ContainerName
+data ContainerId = ContainerId 
+	{ containerHostName :: HostName
+	, containerName :: ContainerName
+	}
 	deriving (Eq, Read, Show)
 
 -- | Two containers with the same ContainerIdent were started from
@@ -325,22 +318,19 @@ toContainerId s
 fromContainerId :: ContainerId -> String
 fromContainerId (ContainerId hn cn) = cn++"."++hn++myContainerSuffix
 
-containerHostName :: ContainerId -> HostName
-containerHostName (ContainerId _ cn) = cn2hn cn
-
 myContainerSuffix :: String
 myContainerSuffix = ".propellor"
 
 containerDesc :: ContainerId -> Property -> Property
 containerDesc cid p = p `describe` desc
   where
-	desc = "[" ++ fromContainerId cid ++ "] " ++ propertyDesc p
+	desc = "container " ++ fromContainerId cid ++ " " ++ propertyDesc p
 
 runningContainer :: ContainerId -> Image -> [RunParam] -> Property
 runningContainer cid@(ContainerId hn cn) image runps = containerDesc cid $ property "running" $ do
 	l <- liftIO $ listContainers RunningContainers
 	if cid `elem` l
-		then checkident =<< liftIO (getrunningident simpleShClient)
+		then checkident =<< liftIO getrunningident
 		else ifM (liftIO $ elem cid <$> listContainers AllContainers)
 			( do
 				-- The container exists, but is not
@@ -349,9 +339,9 @@ runningContainer cid@(ContainerId hn cn) image runps = containerDesc cid $ prope
 				-- starting it up first.
 				void $ liftIO $ startContainer cid
 				-- It can take a while for the container to
-				-- start up enough to get its ident, so
-				-- retry for up to 60 seconds.
-				checkident =<< liftIO (getrunningident (simpleShClientRetry 60))
+				-- start up enough for its ident file to be
+				-- written, so retry for up to 60 seconds.
+				checkident =<< liftIO (retry 60 $ getrunningident)
 			, go image
 			)
   where
@@ -371,22 +361,28 @@ runningContainer cid@(ContainerId hn cn) image runps = containerDesc cid $ prope
 		void $ liftIO $ removeContainer cid
 		go oldimage
 
-	getrunningident shclient = shclient (namedPipe cid) "cat" [propellorIdent] $ \rs -> do
-		let !v = extractident rs
-		return v
+	getrunningident = readish
+		<$> readProcess' (inContainerProcess cid [] ["cat", propellorIdent])
 
-	extractident :: [Resp] -> Maybe ContainerIdent
-	extractident = headMaybe . catMaybes . map readish . catMaybes . map getStdout
+	retry :: Int -> IO (Maybe a) -> IO (Maybe a)
+	retry 0 _ = return Nothing
+	retry n a = do
+		v <- a
+		case v of
+			Just _ -> return v
+			Nothing -> do
+				threadDelaySeconds (Seconds 1)				
+				retry (n-1) a
 
 	go img = do
 		liftIO $ do
 			clearProvisionedFlag cid
 			createDirectoryIfMissing True (takeDirectory $ identFile cid)
-		shim <- liftIO $ Shim.setup (localdir </> "propellor") (localdir </> shimdir cid)
+		shim <- liftIO $ Shim.setup (localdir </> "propellor") Nothing (localdir </> shimdir cid)
 		liftIO $ writeFile (identFile cid) (show ident)
 		ensureProperty $ boolProperty "run" $ runContainer img
 			(runps ++ ["-i", "-d", "-t"])
-			[shim, "--docker", fromContainerId cid]
+			[shim, "--continue", show (DockerInit (fromContainerId cid))]
 
 -- | Called when propellor is running inside a docker container.
 -- The string should be the container's ContainerId.
@@ -394,7 +390,6 @@ runningContainer cid@(ContainerId hn cn) image runps = containerDesc cid $ prope
 -- This process is effectively init inside the container.
 -- It even needs to wait on zombie processes!
 --
--- Fork a thread to run the SimpleSh server in the background.
 -- In the foreground, run an interactive bash (or sh) shell,
 -- so that the user can interact with it when attached to the container.
 --
@@ -402,25 +397,22 @@ runningContainer cid@(ContainerId hn cn) image runps = containerDesc cid $ prope
 -- again. So, to make the necessary services get started on boot, this needs
 -- to provision the container then. However, if the container is already
 -- being provisioned by the calling propellor, it would be redundant and
--- problimatic to also provisoon it here.
+-- problimatic to also provisoon it here, when not booting up.
 --
 -- The solution is a flag file. If the flag file exists, then the container
 -- was already provisioned. So, it must be a reboot, and time to provision
 -- again. If the flag file doesn't exist, don't provision here.
-chain :: String -> IO ()
-chain s = case toContainerId s of
+init :: String -> IO ()
+init s = case toContainerId s of
 	Nothing -> error $ "Invalid ContainerId: " ++ s
 	Just cid -> do
 		changeWorkingDirectory localdir
 		writeFile propellorIdent . show =<< readIdentFile cid
-		-- Run boot provisioning before starting simpleSh,
-		-- to avoid ever provisioning twice at the same time.
 		whenM (checkProvisionedFlag cid) $ do
 			let shim = Shim.file (localdir </> "propellor") (localdir </> shimdir cid)
-			unlessM (boolSystem shim [Param "--continue", Param $ show $ Chain $ containerHostName cid]) $
+			unlessM (boolSystem shim [Param "--continue", Param $ show $ toChain cid]) $
 				warningMessage "Boot provision failed!"
 		void $ async $ job reapzombies
-		void $ async $ job $ simpleSh $ namedPipe cid
 		job $ do
 			void $ tryIO $ ifM (inPath "bash")
 				( boolSystem "bash" [Param "-l"]
@@ -433,36 +425,37 @@ chain s = case toContainerId s of
 
 -- | Once a container is running, propellor can be run inside
 -- it to provision it.
---
--- Note that there is a race here, between the simplesh
--- server starting up in the container, and this property
--- being run. So, retry connections to the client for up to
--- 1 minute.
 provisionContainer :: ContainerId -> Property
 provisionContainer cid = containerDesc cid $ property "provisioned" $ liftIO $ do
 	let shim = Shim.file (localdir </> "propellor") (localdir </> shimdir cid)
-	r <- simpleShClientRetry 60 (namedPipe cid) shim params (go Nothing)
+	let params = ["--continue", show $ toChain cid]
+	msgh <- mkMessageHandle
+	let p = inContainerProcess cid
+		[ if isConsole msgh then "-it" else "-i" ]
+		(shim : params)
+	r <- withHandle StdoutHandle createProcessSuccess p $
+		processChainOutput
 	when (r /= FailedChange) $
 		setProvisionedFlag cid 
 	return r
+
+toChain :: ContainerId -> CmdLine
+toChain cid = DockerChain (containerHostName cid) (fromContainerId cid)
+
+chain :: [Host] -> HostName -> String -> IO ()
+chain hostlist hn s = case toContainerId s of
+	Nothing -> errorMessage "bad container id"
+	Just cid -> case findHostNoAlias hostlist hn of
+		Nothing -> errorMessage ("cannot find host " ++ hn)
+		Just parenthost -> case M.lookup (containerName cid) (_dockerContainers $ _dockerinfo $ hostInfo parenthost) of
+			Nothing -> errorMessage ("cannot find container " ++ containerName cid ++ " docked on host " ++ hn)
+			Just h -> go cid h
   where
-	params = ["--continue", show $ Chain $ containerHostName cid]
-
-	go lastline (v:rest) = case v of
-		StdoutLine s -> do
-			maybe noop putStrLn lastline
-			hFlush stdout
-			go (Just s) rest
-		StderrLine s -> do
-			maybe noop putStrLn lastline
-			hFlush stdout
-			hPutStrLn stderr s
-			hFlush stderr
-			go Nothing rest
-		Done -> ret lastline
-	go lastline [] = ret lastline
-
-	ret lastline = pure $ fromMaybe FailedChange $ readish =<< lastline
+	go cid h = do
+		changeWorkingDirectory localdir
+		onlyProcess (provisioningLock cid) $ do
+			r <- runPropellor h $ ensureProperties $ hostProperties h
+			putStrLn $ "\n" ++ show r
 
 stopContainer :: ContainerId -> IO Bool
 stopContainer cid = boolSystem dockercmd [Param "stop", Param $ fromContainerId cid ]
@@ -488,7 +481,6 @@ stoppedContainer cid = containerDesc cid $ property desc $
   where
 	desc = "stopped"
 	cleanup = do
-		nukeFile $ namedPipe cid
 		nukeFile $ identFile cid
 		removeDirectoryRecursive $ shimdir cid
 		clearProvisionedFlag cid
@@ -504,6 +496,9 @@ removeImage image = catchBoolIO $
 runContainer :: Image -> [RunParam] -> [String] -> IO Bool
 runContainer image ps cmd = boolSystem dockercmd $ map Param $
 	"run" : (ps ++ image : cmd)
+
+inContainerProcess :: ContainerId -> [String] -> [String] -> CreateProcess
+inContainerProcess cid ps cmd = proc dockercmd ("exec" : ps ++ [fromContainerId cid] ++ cmd)
 
 commitContainer :: ContainerId -> IO (Maybe Image)
 commitContainer cid = catchMaybeIO $
@@ -530,15 +525,15 @@ listImages = lines <$> readProcess dockercmd ["images", "--all", "--quiet"]
 
 runProp :: String -> RunParam -> Property
 runProp field val = pureInfoProperty (param) $ dockerInfo $
-	mempty { _dockerRunParams = [\_ -> "--"++param] }
+	mempty { _dockerRunParams = [DockerRunParam (\_ -> "--"++param)] }
   where
 	param = field++"="++val
 
 genProp :: String -> (HostName -> RunParam) -> Property
 genProp field mkval = pureInfoProperty field $ dockerInfo $
-	mempty { _dockerRunParams = [\hn -> "--"++field++"=" ++ mkval hn] }
+	mempty { _dockerRunParams = [DockerRunParam (\hn -> "--"++field++"=" ++ mkval hn)] }
 
-dockerInfo :: DockerInfo -> Info
+dockerInfo :: DockerInfo Host -> Info
 dockerInfo i = mempty { _dockerinfo = i }
 
 -- | The ContainerIdent of a container is written to
@@ -546,10 +541,6 @@ dockerInfo i = mempty { _dockerinfo = i }
 -- the container has the same ident later.
 propellorIdent :: FilePath
 propellorIdent = "/.propellor-ident"
-
--- | Named pipe used for communication with the container.
-namedPipe :: ContainerId -> FilePath
-namedPipe cid = "docker" </> fromContainerId cid
 
 provisionedFlag :: ContainerId -> FilePath
 provisionedFlag cid = "docker" </> fromContainerId cid ++ ".provisioned"
@@ -564,6 +555,9 @@ setProvisionedFlag cid = do
 
 checkProvisionedFlag :: ContainerId -> IO Bool
 checkProvisionedFlag = doesFileExist . provisionedFlag
+
+provisioningLock :: ContainerId -> FilePath
+provisioningLock cid = "docker" </> fromContainerId cid ++ ".lock"
 
 shimdir :: ContainerId -> FilePath
 shimdir cid = "docker" </> fromContainerId cid ++ ".shim"
