@@ -57,7 +57,7 @@ import Data.List.Utils
 import qualified Data.Map as M
 
 installed :: Property
-installed = Apt.installed ["docker.io"]
+installed = Apt.installed ["docker"]
 
 -- | Configures docker with an authentication file, so that images can be
 -- pushed to index.docker.io. Optional.
