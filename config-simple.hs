@@ -73,12 +73,29 @@ hosts =
 				  , "sudo docker run -d --cidfile=$CID_FILE -p 80:8080 -v /home/build/data:/data capital/app:latest"
 				  ]
 		  & File.mode "/home/build/capital-match.git/hooks/post-receive" (combineModes  (ownerWriteMode:readModes ++ executeModes))
-
+		  
+		, host "dev.capital-match.com"
+				  & Git.installed
+				  & Docker.installed
+				  & Fig.installed
+				  -- configure user build
+				  & User.accountFor "build"
+				  & Ssh.keyImported SshRsa "build" (Context "beta.capital-match.com")
+				  & File.containsLines "/home/build/.ssh/config"
+				  [ "Host bitbucket.org"
+								  , "\tUser git"
+								  , "\tHostname bitbucket.org"
+								  , "\tPreferredAuthentications publickey"
+								  , "\tIdentityFile \"/home/build/.ssh/id_rsa\""
+								  ]
+				  & Ssh.knownExternalHost "bitbucket.org" "build"
+				  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
+				  & Sudo.binaryEnabledFor "/usr/bin/docker" "build"
 
         , host "test.atdd.io"
-          & Docker.installed
-          & setDefaultLocale en_us_UTF_8
-          & Git.installed
+		  & Docker.installed
+		  & setDefaultLocale en_us_UTF_8
+		  & Git.installed
           & User.accountFor "admin"
           & Sudo.binaryEnabledFor "/usr/bin/docker" "admin"
           & Ssh.authorizedKeys "admin" (Context "test.atdd.io")
