@@ -75,6 +75,7 @@ hosts =
 		  & File.mode "/home/build/capital-match.git/hooks/post-receive" (combineModes  (ownerWriteMode:readModes ++ executeModes))
 		  
 		, host "dev.capital-match.com"
+				  & setDefaultLocale en_us_UTF_8
 				  & Git.installed
 				  & installLatestDocker
 				  & Fig.installed
