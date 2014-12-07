@@ -7,7 +7,6 @@ import Propellor.CmdLine
 import Utility.FileMode
 import System.Posix.Files
 
-
 import qualified Propellor.Property.File as File
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Apache as Apache
@@ -16,6 +15,7 @@ import qualified Propellor.Property.Ssh as Ssh
 import qualified Propellor.Property.Cron as Cron
 import qualified Propellor.Property.Sudo as Sudo
 import qualified Propellor.Property.User as User
+import qualified Propellor.Property.Group as Group
 --import qualified Propellor.Property.Hostname as Hostname
 --import qualified Propellor.Property.Reboot as Reboot
 --import qualified Propellor.Property.Tor as Tor
@@ -76,10 +76,11 @@ hosts =
 		  
 		, host "dev.capital-match.com"
 				  & Git.installed
-				  & Docker.installed
+				  & installLatestDocker
 				  & Fig.installed
 				  -- configure user build
-				  & User.accountFor "build"
+				  & accountWithIds "build" 1001 1001
+				  & User.hasGroup "build" "docker"
 				  & Ssh.keyImported SshRsa "build" (Context "beta.capital-match.com")
 				  & File.containsLines "/home/build/.ssh/config"
 				  [ "Host bitbucket.org"
@@ -90,7 +91,21 @@ hosts =
 								  ]
 				  & Ssh.knownExternalHost "bitbucket.org" "build"
 				  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
-				  & Sudo.binaryEnabledFor "/usr/bin/docker" "build"
+				  & Apt.installed [ "emacs24" ]
+				  -- syntax highlighting for haskell and clojure
+				  -- TODO cabal build/install newest version of cabal
+				  -- configure docker authent to pull images from dockerhub
+				  & withPrivData (PrivFile "docker-auth-token") (Context "dev.capital-match.com") 
+				     (\ getdata -> property "docker auth configured"
+												   $ getdata $ \ tok -> liftIO $ (writeFile "/home/build/.ssh/.dockercfg" (unlines 
+														  [ "{"
+			      										  , "\"https://index.docker.io/v1/\":"
+				  										  , "   {\"auth\":\""  ++ tok ++ "\""
+				  										  , ", \"email\":\"dev@capital-match.com\"}"
+				                                          , "}"
+				                                          ]) >> return MadeChange) `catchIO` const (return FailedChange))
+				  -- run fig and build script from propellor to pull images
+				  -- cabal install shake
 
         , host "test.atdd.io"
 		  & Docker.installed
@@ -274,3 +289,33 @@ setDefaultLocale locale = propertyList ("setting default locale to " ++ localeSt
   ]
   where
     localeString = show locale 
+
+installLatestDocker :: Property
+installLatestDocker = propertyList ("install latest docker from official repositories")
+					  [
+  cmdProperty "apt-key" [ "adv"
+						, "--keyserver"
+						, "hkp://keyserver.ubuntu.com:80"
+						, "--recv-keys"
+						, "36A1D7869245C8950F966E92D8576A8BA88D21E9"
+						]
+  , Apt.update
+  , Apt.installed [ "lxc-docker" ]
+  ]
+  
+
+accountWithIds :: UserName -> Int -> Int -> Property
+accountWithIds user uid gid = check (isNothing <$> catchMaybeIO (User.homedir user)) $ propertyList
+  ("account for " ++ user ++ " with uid:" ++ (show uid) ++ "/gid:" ++ (show gid))				  
+  [
+  Group.exists user (Just  gid),
+  cmdProperty "adduser"
+	[ "--disabled-password"
+	, "--gecos", ""
+	, "--uid", (show uid) 
+	, "--gid", (show gid) 
+	, user
+	]
+  ]
+
+
