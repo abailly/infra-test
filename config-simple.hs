@@ -92,6 +92,7 @@ hosts =
 								  ]
 				  & Ssh.knownExternalHost "bitbucket.org" "build"
 				  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
+				  & Git.cloned "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/app" (Just "master")
 				  & Apt.installed [ "emacs24" ]
 				  -- syntax highlighting for haskell and clojure
 				  -- TODO cabal build/install newest version of cabal
