@@ -109,7 +109,7 @@ hosts =
 				  										  , ", \"email\":\"dev@capital-match.com\"}"
 				                                          , "}"
 				                                          ]) >> return MadeChange) `catchIO` const (return FailedChange))
-				  & userScriptProperty "build" [ "app/build.sh" ]
+				  & userScriptProperty "build" [ "cd app", "./build.sh" ]
 
         , host "test.atdd.io"
 		  & Docker.installed
