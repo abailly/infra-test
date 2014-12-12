@@ -4,18 +4,21 @@ module Propellor.Property.Cabal where
 import Data.List
 import Propellor
 
+import Utility.SafeCommand
+
 type PackageName = String
 
-updated :: Property
-updated = propertyList "updated cabal and all packages"
-		  [ cmdProperty "cabal" [ "update" ]
-	      , cmdProperty "cabal" [ "install" , "cabal-install" ]
-	      ]
+updated :: UserName -> Property
+updated user = property ("update cabal and all packages for user " ++ user) $
+			   ensureProperty $
+			   userScriptProperty user [ "cabal update" , "cabal install cabal-install"  ]
 		  
 -- |Install latest versions of the listed packages
-installed :: [ PackageName ] -> Property
-installed pkgs = prop `requires` updated
+installed :: UserName -> [ PackageName ] -> Property
+installed user pkgs = prop `requires` updated user
   where
-	prop = cmdProperty "cabal" ("install": intersperse " " pkgs)
+	pkgList =  concat (intersperse " " (map shellEscape pkgs))
+	prop = property ("install packages " ++ pkgList) $ ensureProperty $ 
+		   userScriptProperty user [ "cabal install" ++ pkgList  ]
 
 
