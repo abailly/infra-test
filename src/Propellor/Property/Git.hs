@@ -94,6 +94,16 @@ cloned owner url dir mbranch = check originurl (property desc checkout)
 			]
 
 
+-- | User's  global git configuration is set to given name and email
+configuredUser :: UserName -> String -> String -> Property
+configuredUser user name email = prop `requires` installed
+  where
+	prop = property ("git for user " ++ user ++ " configured to " ++ name ++  " <" ++ email ++ ">") $ ensureProperty
+			   $ userScriptProperty user
+			   [ "git config --global user.name " ++ shellEscape name
+			   , "git config --global user.email " ++ shellEscape email
+			   ]
+
 -- | Specified git repository is cloned to the specified directory as a bare repository.
 --
 -- This is useful to setup a central or remotely accessible repository.

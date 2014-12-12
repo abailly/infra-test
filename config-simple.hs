@@ -8,6 +8,7 @@ import Utility.FileMode
 import System.Posix.Files
 
 import qualified Propellor.Property.File as File
+import qualified Propellor.Property.Cabal as Cabal
 import qualified Propellor.Property.Apt as Apt
 import qualified Propellor.Property.Apache as Apache
 -- import qualified Propellor.Property.Network as Network
@@ -75,6 +76,7 @@ hosts =
 		  & File.mode "/home/build/capital-match.git/hooks/post-receive" (combineModes  (ownerWriteMode:readModes ++ executeModes))
 		  
 		, host "dev.capital-match.com"
+				  -- TODO fix host key to some known value so that it nver changes in known_hosts files
 				  & setDefaultLocale en_us_UTF_8
 				  & Git.installed
 				  & installLatestDocker
@@ -90,12 +92,13 @@ hosts =
 								  , "\tPreferredAuthentications publickey"
 								  , "\tIdentityFile \"/home/build/.ssh/id_rsa\""
 								  ]
+				  & Git.configuredUser "build" "Igitur Ventures Ltd." "igitur@igitur.io"
 				  & Ssh.knownExternalHost "bitbucket.org" "build"
 				  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
 				  & Git.cloned "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/app" (Just "master")
-				  & Apt.installed [ "emacs24" ]
-				  -- TODO syntax highlighting for haskell and clojure
-				  -- TODO cabal build/install newest version of cabal
+				  & Apt.installed [ "emacs24" ]  -- TODO syntax highlighting for haskell and clojure
+				  & Cabal.updated
+				  & Cabal.installed [ "shake" ] 
 				  -- configure docker authent to pull images from dockerhub
 				  & withPrivData (PrivFile "docker-auth-token") (Context "dev.capital-match.com") 
 				     (\ getdata -> property "docker auth configured"
@@ -106,8 +109,7 @@ hosts =
 				  										  , ", \"email\":\"dev@capital-match.com\"}"
 				                                          , "}"
 				                                          ]) >> return MadeChange) `catchIO` const (return FailedChange))
-				  -- TODO run fig and build script from propellor to pull images
-				  -- TODO cabal install shake
+				  & userScriptProperty "build" [ "app/build.sh" ]
 
         , host "test.atdd.io"
 		  & Docker.installed
