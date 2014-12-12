@@ -94,7 +94,7 @@ hosts =
 				  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
 				  & Git.cloned "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/app" (Just "master")
 				  & Apt.installed [ "emacs24" ]
-				  -- syntax highlighting for haskell and clojure
+				  -- TODO syntax highlighting for haskell and clojure
 				  -- TODO cabal build/install newest version of cabal
 				  -- configure docker authent to pull images from dockerhub
 				  & withPrivData (PrivFile "docker-auth-token") (Context "dev.capital-match.com") 
@@ -106,8 +106,8 @@ hosts =
 				  										  , ", \"email\":\"dev@capital-match.com\"}"
 				                                          , "}"
 				                                          ]) >> return MadeChange) `catchIO` const (return FailedChange))
-				  -- run fig and build script from propellor to pull images
-				  -- cabal install shake
+				  -- TODO run fig and build script from propellor to pull images
+				  -- TODO cabal install shake
 
         , host "test.atdd.io"
 		  & Docker.installed
