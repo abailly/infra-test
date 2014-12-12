@@ -23,6 +23,6 @@ installed user pkgs = prop
   where
 	pkgList =  concat (intersperse " " (map shellEscape pkgs))
 	prop = property ("install packages " ++ pkgList) $ ensureProperty $ 
-		   userScriptProperty user [ "cabal install" ++ pkgList  ]
+		   userScriptProperty user [ "cabal install " ++ pkgList  ]
 
 
