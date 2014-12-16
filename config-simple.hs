@@ -96,10 +96,10 @@ hosts =
 		& Ssh.knownExternalHost "bitbucket.org" "build"
 		& Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
 		& Git.cloned "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/app" (Just "master")
-		& Apt.installed [ "emacs24", "zlib1g-dev" ]  -- TODO syntax highlighting for haskell and clojure
-		& configureEmacs "build"
 		& Cabal.updated "build"
 		& Cabal.installed "build" [ "shake" ] 
+		& Apt.installed [ "emacs24", "zlib1g-dev" ]  -- TODO syntax highlighting for haskell and clojure
+		& configureEmacs "build"
 		-- configure docker authent to pull images from dockerhub
 		& withPrivData (PrivFile "docker-auth-token") (Context "dev.capital-match.com") 
 		   (\ getdata -> property "docker auth configured"
