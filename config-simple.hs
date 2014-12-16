@@ -97,6 +97,7 @@ hosts =
 		& Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
 		& Git.cloned "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/app" (Just "master")
 		& Apt.installed [ "emacs24", "zlib1g-dev" ]  -- TODO syntax highlighting for haskell and clojure
+		& configureEmacs "build"
 		& Cabal.updated "build"
 		& Cabal.installed "build" [ "shake" ] 
 		-- configure docker authent to pull images from dockerhub
@@ -324,4 +325,20 @@ accountWithIds user uid gid = check (isNothing <$> catchMaybeIO (User.homedir us
 	]
   ]
 
+configureEmacs :: UserName -> Property
+configureEmacs user = propertyList "configuring emacs for haskell development"
+					  [ userScriptProperty user [ "git clone https://github.com/chrisdone/emacs-haskell-config.git --recursive"
+							 					, "cabal install emacs-haskell-config/packages/structured-haskell-mode/"
+							 					, "cabal install emacs-haskell-config/packages/ghci-ng/"
+							 					, "cabal install emacs-haskell-config/packages/hindent/"
+							 					, "cabal install emacs-haskell-config/packages/haskell-docs/"
+							 					, "cd emacs-haskell-config/packages/haskell-mode"
+							 					, "make compile haskell-mode-autoloads.el"
+							 					, "cd"
+							 					, "cd emacs-haskell-config/packages/structured-haskell-mode/elisp/"
+												, "make"
+												, "cd"
+												]
+					  ]
+														   
 
