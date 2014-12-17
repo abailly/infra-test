@@ -329,7 +329,8 @@ configureEmacs :: UserName -> Property
 configureEmacs user = property ("configuring emacs for haskell development for user " ++ user) $ do
   home <- liftIO $ User.homedir user
   ensureProperty $ combineProperties "creating emacs configuration" 
-	[ File.hasContent (home </> ".emacs.d/install-package.el")
+	[ File.dirExists (home </> ".emacs.d")
+	, File.hasContent (home </> ".emacs.d/install-package.el")
 		  [ "(require 'package)"
 		  , "(package-initialize)"
 		  , "(add-to-list 'package-archives"
