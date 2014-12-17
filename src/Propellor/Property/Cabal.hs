@@ -4,6 +4,7 @@ module Propellor.Property.Cabal where
 import Data.List
 import Propellor
 import Propellor.Property.User
+import Propellor.Property.File as File
 
 import Utility.SafeCommand
 
@@ -12,10 +13,11 @@ type PackageName = String
 updated :: UserName -> Property
 updated user = property ("update cabal and all packages for user " ++ user) $ do
                   home <- liftIO $ homedir user
-                  ensureProperty $ userScriptProperty user [ "cabal update"
-														   , "cabal install cabal-install"
-														   , "echo 'export PATH=$PATH:" ++ home ++ "/.cabal/bin' >> " ++ home ++ "/.bash_profile"
-														   ]
+                  ensureProperty $ userScriptProperty user [ "cabal update" ]
+					`before`
+					File.containsLine (home </> ".bash_profile") ( "export PATH=" ++ home ++ "/.cabal/bin:$PATH") 
+			   
+
 		  
 -- |Install latest versions of the listed packages
 installed :: UserName -> [ PackageName ] -> Property
