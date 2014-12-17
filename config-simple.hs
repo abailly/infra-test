@@ -66,6 +66,8 @@ hosts =
 		  ]
 		  & File.ownerGroup "/home/build/ci.git/hooks/post-receive" "build" "build"
 		  & "/home/build/ci.git/hooks/post-receive" `File.mode` combineModes [ownerWriteMode, ownerReadMode, ownerExecuteMode, groupReadMode, groupExecuteMode]
+		  & File.dirExists "/home/build/ci"
+		  & File.ownerGroup "/home/build/ci" "build" "build"
 		  -- configure app
 		  & Git.clonedBare "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/capital-match.git"
 		  & File.hasContent "/home/build/capital-match.git/hooks/post-receive"
