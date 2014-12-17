@@ -330,6 +330,7 @@ configureEmacs user = property ("configuring emacs for haskell development for u
   home <- liftIO $ User.homedir user
   ensureProperty $ combineProperties "creating emacs configuration" 
 	[ File.dirExists (home </> ".emacs.d")
+	, File.ownerGroup (home </> ".emacs.d") "build" "build"
 	, File.hasContent (home </> ".emacs.d/install-package.el")
 		  [ "(require 'package)"
 		  , "(package-initialize)"
