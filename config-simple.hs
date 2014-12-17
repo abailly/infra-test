@@ -62,6 +62,7 @@ hosts =
 		  , "GIT_WORK_TREE=${WORK_DIR} git checkout -f"
 		  , "cd $WORK_DIR"
 		  , "fig stop"
+		  , "fig build"
 		  , "fig up -d"
 		  ]
 		  & File.ownerGroup "/home/build/ci.git/hooks/post-receive" "build" "build"
