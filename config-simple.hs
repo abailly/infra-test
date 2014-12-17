@@ -35,10 +35,11 @@ hosts =
 	[ host "beta.capital-match.com"
           & Cron.runPropellor "30 * * * *"
           & Git.installed
-          & Docker.installed
+		  & installLatestDocker
 		  & Fig.installed
           -- configure user build
           & User.accountFor "build"
+		  & User.hasGroup "build" "docker"
 		  & Ssh.keyImported SshRsa "build" (Context "beta.capital-match.com")
 		  & File.containsLines "/home/build/.ssh/config"
 		  [ "Host bitbucket.org"
@@ -50,7 +51,21 @@ hosts =
 		  & Ssh.knownExternalHost "bitbucket.org" "build"
 		  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
 		  & Sudo.binaryEnabledFor "/usr/bin/docker" "build"
-		  & Git.clonedBare "build" "git@bitbucket.org:abailly/capital-match.git" "/home/build/capital-match.git"
+		  -- configure ci
+		  & Git.clonedBare "build" "git@bitbucket.org:capitalmatch/ci.git" "/home/build/ci.git"
+		  & File.hasContent "/home/build/ci.git/hooks/post-receive"
+		  [ "#!/bin/sh"
+		  , "read START STOP BRANCH"
+		  , "echo \"branch: $BRANCH\""
+		  , "expr \"$BRANCH\" : '.*/master' || exit 0"
+		  , "WORK_DIR=/home/build/ci/"
+		  , "GIT_WORK_TREE=${WORK_DIR} git checkout -f"
+		  , "cd $WORK_DIR"
+		  , "fig stop"
+		  , "fig up -d"
+		  ]
+		  -- configure app
+		  & Git.clonedBare "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/capital-match.git"
 		  & File.hasContent "/home/build/capital-match.git/hooks/post-receive"
 		  [ "#!/bin/sh"
 				  , "read START STOP BRANCH"
@@ -343,7 +358,7 @@ configureEmacs user = property ("configuring emacs for haskell development for u
 		  , "(package-refresh-contents)"
 		  , "(mapc 'package-install pkg-to-install)"
 		 ]
-    , userScriptProperty user [ "emacs --batch --eval \"(defconst pkg-to-install '(flycheck auto-complete haskell-mode ghc ghci-completion projectile flx-ido))\" -l $HOME/.emacs.d/install-package.el" ]   , File.hasContent (home </> ".emacs")
+    , userScriptProperty user [ "emacs --batch --eval \"(defconst pkg-to-install '(flycheck auto-complete haskell-mode ghc ghci-completion projectile flx-ido clojure-mode))\" -l $HOME/.emacs.d/install-package.el" ]   , File.hasContent (home </> ".emacs")
 		 [ "(add-to-list 'exec-path \"~/.cabal/bin\")"
     	 , "(menu-bar-mode 0)"
     	 , ""
