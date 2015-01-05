@@ -168,6 +168,7 @@ hosts =
           & standardHakyllSite "admin" "admin" "bailly.me" []
           & standardHakyllSite "admin" "admin" "blog.foldlabs.com" []
           & User.accountFor "www2"
+		  & User.hasGroup "www2" "admin"
 		  & Ssh.authorizedKeys "www2" (Context "www2.capital-match.com")
           & standardHakyllSite "www2" "www2" "www2.capital-match.com" []
 
@@ -198,7 +199,8 @@ hosts =
 -- | Configures a hakyll-generated site as a vhost served by apache
 standardHakyllSite :: UserName -> GroupName -> HostName -> [ HostName ] -> Property
 standardHakyllSite usr grp siteName aliases = propertyList ("serving " ++ siteName ++ " site")  [
-  File.ownerGroup directory usr grp
+  File.dirExists directory
+  , File.ownerGroup directory usr grp
   ,directory `File.mode` combineModes [ownerWriteMode, ownerReadMode, ownerExecuteMode, groupReadMode, groupExecuteMode]
   ,toProp $ Apache.siteEnabled siteName $ apachecfg siteName aliases directory NoSSL []
   ]
