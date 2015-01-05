@@ -73,26 +73,21 @@ hosts =
 		  & Git.clonedBare "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/capital-match.git"
 		  & File.hasContent "/home/build/capital-match.git/hooks/post-receive"
 		  [ "#!/bin/sh"
-				  , "read START STOP BRANCH"
-				  , "echo \"branch: $BRANCH\""
-				  , "expr \"$BRANCH\" : '.*/master' || exit 0"
-				  , "CHANGED=$(git diff --name-status $START..$STOP)"
-				  , "WORK_DIR=/home/build/capital-match/"
-				  , "GIT_WORK_TREE=${WORK_DIR} git checkout -f"
-				  , "cd $WORK_DIR"
-				  , "if echo $CHANGED | grep \"capital-match.cabal\\|project.clj\\|deps/\"  > /dev/null 2>&1 ; then"
-				  , "  cp capital-match.cabal deps/ "
-				  , "  cp ui/project.clj  deps/ "
-				  , "  sudo docker build -t capital/deps deps || exit 1"
-				  , "fi"
-				  , "sudo docker build -t capital/app .  || exit 1"
-				  , "CID_FILE=/home/build/.app.cid"
-				  , "if [ -f $CID_FILE ]; then"
-				  , "  sudo docker kill $(cat $CID_FILE)"
-				  , "  rm $CID_FILE"
-				  , "fi"
-				  , "sudo docker run -d --cidfile=$CID_FILE -p 80:8080 -v /home/build/data:/data capital/app:latest"
-				  ]
+		  , "read START STOP BRANCH"
+		  , "echo \"branch: $BRANCH\""
+		  , "# do not send non review branches to CI"
+		  , "if expr \"$BRANCH\" : '.*/review' ; then "
+		  , "  # assume docker is in path, we have right to use it and CI container is built"
+		  , "  docker run ci_server addpatch --name=$STOP --host=beta.capital-match.com"
+		  , "elif expr \"$BRANCH\" : '.*/master' ; then "
+		  , "  if [ -f /home/build/.app.cid ]; then"
+		  , "    docker kill $(cat /home/build/.app.cid)"
+		  , "    rm /home/build/.app.cid"
+		  , "  fi"
+		  , "  # run as build user"
+		  , "  docker run -d --cidfile=/home/build/.app.cid -p 80:8080 -v /home/build/data:/data capital/app:latest"
+		  , "fi"
+	      ]
 		  & File.mode "/home/build/capital-match.git/hooks/post-receive" (combineModes  (ownerWriteMode:readModes ++ executeModes))
 		  
 		, host "dev.capital-match.com"
@@ -169,9 +164,12 @@ hosts =
           & Apt.serviceInstalledRunning "apache2"
           & Apache.modEnabled "ssl"
           & User.accountFor "admin"
-          & standardHakyllSite "atdd.io" ["www.atdd.io"]
-          & standardHakyllSite "bailly.me" []
-          & standardHakyllSite "blog.foldlabs.com" []
+          & standardHakyllSite "admin" "admin" "atdd.io" ["www.atdd.io"]
+          & standardHakyllSite "admin" "admin" "bailly.me" []
+          & standardHakyllSite "admin" "admin" "blog.foldlabs.com" []
+          & User.accountFor "www2"
+		  & Ssh.authorizedKeys "www2" (Context "www2.capital-match.com")
+          & standardHakyllSite "www2" "www2" "www2.capital-match.com" []
 
         -- new systemsthinking.net
         , host "advandenende.eu"
@@ -198,9 +196,9 @@ hosts =
 	]
 
 -- | Configures a hakyll-generated site as a vhost served by apache
-standardHakyllSite :: HostName -> [ HostName ] -> Property
-standardHakyllSite siteName aliases = propertyList ("serving " ++ siteName ++ " site")  [
-  File.ownerGroup directory "admin" "admin"
+standardHakyllSite :: UserName -> GroupName -> HostName -> [ HostName ] -> Property
+standardHakyllSite usr grp siteName aliases = propertyList ("serving " ++ siteName ++ " site")  [
+  File.ownerGroup directory usr grp
   ,directory `File.mode` combineModes [ownerWriteMode, ownerReadMode, ownerExecuteMode, groupReadMode, groupExecuteMode]
   ,toProp $ Apache.siteEnabled siteName $ apachecfg siteName aliases directory NoSSL []
   ]
