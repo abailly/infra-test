@@ -199,13 +199,16 @@ hosts =
 -- | Configures a hakyll-generated site as a vhost served by apache
 standardHakyllSite :: UserName -> GroupName -> HostName -> [ HostName ] -> Property
 standardHakyllSite usr grp siteName aliases = propertyList ("serving " ++ siteName ++ " site")  [
-  File.dirExists directory
+  File.dirExists parent
+  , File.dirExists directory
+  , File.ownerGroup parent usr grp
   , File.ownerGroup directory usr grp
   ,directory `File.mode` combineModes [ownerWriteMode, ownerReadMode, ownerExecuteMode, groupReadMode, groupExecuteMode]
   ,toProp $ Apache.siteEnabled siteName $ apachecfg siteName aliases directory NoSSL []
   ]
   where
-    directory = "/srv/nono-data/" ++ siteName ++ "/_site"
+	parent = "/srv/nono-data" </> siteName
+	directory = parent </> "_site"
 
 data VHostSSL = NoSSL
               | WithSSL
