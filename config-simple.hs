@@ -170,7 +170,7 @@ hosts =
           & User.accountFor "www2"
 		  & User.hasGroup "www2" "admin"
 		  & Ssh.authorizedKeys "www2" (Context "www2.capital-match.com")
-          & standardHakyllSite "www2" "www2" "www2.capital-match.com" []
+          & standardHakyllSite "www2" "admin" "www2.capital-match.com" []
 
         -- new systemsthinking.net
         , host "advandenende.eu"
