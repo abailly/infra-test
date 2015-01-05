@@ -170,6 +170,7 @@ hosts =
           & User.accountFor "www2"
 		  & User.hasGroup "www2" "admin"
 		  & Ssh.authorizedKeys "www2" (Context "www2.capital-match.com")
+		  & Git.bareRepo ("/home/www2/work" </> "www2.capital-match.com.git") "www2" Git.NotShared
           & standardHakyllSite "www2" "admin" "www2.capital-match.com" []
 
         -- new systemsthinking.net
