@@ -158,6 +158,7 @@ hosts =
         , host "brightbox"
           & User.accountFor "admin"
 
+		  -- TODO Change hosting -> DO
         , host "92.243.3.60"
           & Git.installed
           & setDefaultLocale en_us_UTF_8
