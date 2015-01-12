@@ -92,42 +92,8 @@ hosts =
 		  
 		, host "dev.capital-match.com"
 		-- TODO fix host key to some known value so that it nver changes in known_hosts files
-		& setDefaultLocale en_us_UTF_8
-		& Git.installed
-		& installLatestDocker
-		& Fig.installed
-		-- configure user build
-		& accountWithIds "build" 1001 1001
-		& User.hasGroup "build" "docker"
-		& Ssh.keyImported SshRsa "build" (Context "beta.capital-match.com")
-		& File.containsLines "/home/build/.ssh/config"
-		[ "Host bitbucket.org"
-						  , "\tUser git"
-						  , "\tHostname bitbucket.org"
-						  , "\tPreferredAuthentications publickey"
-						  , "\tIdentityFile \"/home/build/.ssh/id_rsa\""
-						  ]
-		& Git.configuredUser "build" "Igitur Ventures Ltd." "igitur@igitur.io"
-		& Ssh.knownExternalHost "bitbucket.org" "build"
-		& Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
-		& Git.cloned "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/app" (Just "master")
-		& Cabal.updated "build"
-		& Apt.installed [ "emacs24", "zlib1g-dev" ]  -- TODO syntax highlighting for haskell and clojure
-		& Cabal.installed "build" [ "cabal-install", "happy", "alex", "shake" ] 
-		& configureEmacs "build"
-		-- configure docker authent to pull images from dockerhub
-		& withPrivData (PrivFile "docker-auth-token") (Context "dev.capital-match.com") 
-		   (\ getdata -> property "docker auth configured"
-										   $ getdata $ \ tok -> liftIO $ (writeFile "/home/build/.ssh/.dockercfg" (unlines 
-												  [ "{"
-												  , "\"https://index.docker.io/v1/\":"
-												  , "   {\"auth\":\""  ++ tok ++ "\""
-												  , ", \"email\":\"dev@capital-match.com\"}"
-		                                        , "}"
-		                                        ]) >> return MadeChange) `catchIO` const (return FailedChange))
-		& userScriptProperty "build" [ "cd app", "./build.sh" ]
-
-        , host "test.atdd.io"
+      & devhost
+    , host "test.atdd.io"
 		  & Docker.installed
 		  & setDefaultLocale en_us_UTF_8
 		  & Git.installed
@@ -197,6 +163,44 @@ hosts =
                
 	--, host "foo.example.com" = ...
 	]
+
+devhost :: Property
+devhost = propertyList "creating devserver configuration" 
+	[ setDefaultLocale en_us_UTF_8
+		, Git.installed
+		, installLatestDocker
+		, Fig.installed
+		-- configure user build
+		, accountWithIds "build" 1001 1001
+		, User.hasGroup "build" "docker"
+		, Ssh.keyImported SshRsa "build" (Context "beta.capital-match.com")
+		, File.containsLines "/home/build/.ssh/config"
+		[ "Host bitbucket.org"
+						  , "\tUser git"
+						  , "\tHostname bitbucket.org"
+						  , "\tPreferredAuthentications publickey"
+						  , "\tIdentityFile \"/home/build/.ssh/id_rsa\""
+						  ]
+		, Git.configuredUser "build" "Igitur Ventures Ltd." "igitur@igitur.io"
+		, Ssh.knownExternalHost "bitbucket.org" "build"
+		, Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
+		, Git.cloned "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/app" (Just "master")
+		, Cabal.updated "build"
+		, Apt.installed [ "emacs24", "zlib1g-dev" ]  -- TODO syntax highlighting for haskell and clojure
+		, Cabal.installed "build" [ "cabal-install", "happy", "alex", "shake" ] 
+		, configureEmacs "build"
+		-- configure docker authent to pull images from dockerhub
+		, withPrivData (PrivFile "docker-auth-token") (Context "dev.capital-match.com") 
+		   (\ getdata -> property "docker auth configured"
+										   $ getdata $ \ tok -> liftIO $ (writeFile "/home/build/.ssh/.dockercfg" (unlines 
+												  [ "{"
+												  , "\"https://index.docker.io/v1/\":"
+												  , "   {\"auth\":\""  ++ tok ++ "\""
+												  , ", \"email\":\"dev@capital-match.com\"}"
+		                                        , "}"
+		                                        ]) >> return MadeChange) `catchIO` const (return FailedChange))
+		, userScriptProperty "build" [ "cd app", "./build.sh" ]
+  ]
 
 -- | Configures a hakyll-generated site as a vhost served by apache
 standardHakyllSite :: UserName -> GroupName -> HostName -> [ HostName ] -> Property
