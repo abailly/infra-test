@@ -171,7 +171,7 @@ devhost = propertyList "creating devserver configuration"
 		, installLatestDocker
 		, Fig.installed
 		-- configure user build
-		, accountWithIds "build" 1001 1001
+		, accountWithIds "build" 2020 2020
 		, User.hasGroup "build" "docker"
 		, Ssh.keyImported SshRsa "build" (Context "beta.capital-match.com")
 		, File.containsLines "/home/build/.ssh/config"
