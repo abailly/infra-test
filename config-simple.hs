@@ -93,6 +93,8 @@ hosts =
 		, host "dev.capital-match.com"
 		-- TODO fix host key to some known value so that it nver changes in known_hosts files
       & devhost
+    , host "angel"
+      & devhost
     , host "test.atdd.io"
 		  & Docker.installed
 		  & setDefaultLocale en_us_UTF_8
@@ -121,8 +123,6 @@ hosts =
           & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 443)
           & Firewall.rule INPUT DROP   Everything
           
-        , host "gypsyfire"
-          & Git.installed
 
 		  -- TODO Change hosting -> DO
         , host "92.243.3.60"
