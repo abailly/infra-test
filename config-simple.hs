@@ -121,8 +121,8 @@ hosts =
           & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 443)
           & Firewall.rule INPUT DROP   Everything
           
-        , host "brightbox"
-          & User.accountFor "admin"
+        , host "gypsyfire"
+          & Git.installed
 
 		  -- TODO Change hosting -> DO
         , host "92.243.3.60"
