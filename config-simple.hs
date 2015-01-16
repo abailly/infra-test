@@ -473,14 +473,11 @@ configureEmacs user = property ("configuring emacs for haskell development for u
     	 , ""
     	 , "(eval-after-load \"haskell-cabal\""
     	 , "    '(define-key haskell-cabal-mode-map (kbd \"C-c C-c\") 'haskell-compile))"
-         ]
-	, File.ownerGroup (home </> ".emacs") "build" "build"
 		  -- handle tmux's xterm-keys
 		  -- from http://unix.stackexchange.com/questions/24414/shift-arrow-not-working-in-emacs-within-tmux
 		  --  put the following line in your ~/.tmux.conf:
 		  --   setw -g xterm-keys on
-	, File.hasContent (home </> ".emacs.d/init.el")
-		 [ "(define-key input-decode-map \"\\e[1;5C\" [C-right])"
+		 , "(define-key input-decode-map \"\\e[1;5C\" [C-right])"
 		 , "(define-key input-decode-map \"\\e[1;5D\" [C-left])"
 		 , "(if (getenv \"TMUX\")"
 		 , "    (progn"
@@ -569,5 +566,5 @@ configureEmacs user = property ("configuring emacs for haskell development for u
 		 , "    )"
 		 , "  ) "
          ]
-	, File.ownerGroup (home </> ".emacs.d/init.el") "build" "build"
+	, File.ownerGroup (home </> ".emacs") "build" "build"
 	]
