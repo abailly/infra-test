@@ -200,7 +200,7 @@ knownHost hosts hn user = property desc $
 
 -- | Adds some external host's public key to the known_hosts file for a user
 -- This requires ssh to be installed and the 'ssh-keyscan' program to run
-knownExternalHost :: HostName -> UserName -> Property
+knownExternalHost :: HostName -> UserName -> Property NoInfo
 knownExternalHost hn user = property desc go
   where
 	desc = ("add key for " ++ hn ++ " to known_hosts for " ++ user)

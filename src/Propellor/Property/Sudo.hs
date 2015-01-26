@@ -34,7 +34,7 @@ enabledFor user = property desc go `requires` Apt.installed ["sudo"]
 -- | Allows a user to sudo without password for some restricted binary
 -- Put a file into /etc/sudoers.d/ directory instead of modifying /etc/sudoers and check
 -- the latter contains include directives
-binaryEnabledFor :: FilePath -> UserName -> Property
+binaryEnabledFor :: FilePath -> UserName -> Property NoInfo
 binaryEnabledFor bin user = prop `requires` Apt.installed ["sudo"]
   where
 	prop = propertyList "sudoers includes /etc/sudoers.d directory"

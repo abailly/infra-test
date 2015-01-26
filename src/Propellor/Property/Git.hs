@@ -95,7 +95,7 @@ cloned owner url dir mbranch = check originurl (property desc checkout)
 
 
 -- | User's  global git configuration is set to given name and email
-configuredUser :: UserName -> String -> String -> Property
+configuredUser :: UserName -> String -> String -> Property NoInfo
 configuredUser user name email = prop `requires` installed
   where
 	prop = property ("git for user " ++ user ++ " configured to " ++ name ++  " <" ++ email ++ ">") $ ensureProperty
@@ -111,7 +111,7 @@ configuredUser user name email = prop `requires` installed
 -- deleted. 
 --
 -- TODO: refactor to extract common stuff with standard cloning				
-clonedBare :: UserName -> RepoUrl -> FilePath -> Property
+clonedBare :: UserName -> RepoUrl -> FilePath -> Property NoInfo
 clonedBare owner url dir = check originurl (property desc checkout)
 	`requires` installed
   where

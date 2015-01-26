@@ -165,7 +165,7 @@ hosts =
 	--, host "foo.example.com" = ...
 	]
 
-devhost :: Property
+devhost :: Property NoInfo
 devhost = propertyList "creating devserver configuration" 
 	[ setDefaultLocale en_us_UTF_8
 		, Git.installed
@@ -174,7 +174,7 @@ devhost = propertyList "creating devserver configuration"
 		-- configure user build
 		, accountWithIds "build" 2020 2020
 		, User.hasGroup "build" "docker"
-		, Ssh.keyImported SshRsa "build" (Context "beta.capital-match.com")
+		, ignoreInfo $ Ssh.keyImported SshRsa "build" (Context "beta.capital-match.com")
 		, File.containsLines "/home/build/.ssh/config"
 		[ "Host bitbucket.org"
 						  , "\tUser git"
@@ -184,14 +184,14 @@ devhost = propertyList "creating devserver configuration"
 						  ]
 		, Git.configuredUser "build" "Igitur Ventures Ltd." "igitur@igitur.io"
 		, Ssh.knownExternalHost "bitbucket.org" "build"
-		, Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
+		, ignoreInfo $ Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
 		, Git.cloned "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/app" (Just "master")
 		, Cabal.updated "build"
 		, Apt.installed [ "emacs24", "zlib1g-dev" ]  -- TODO syntax highlighting for haskell and clojure
 		, Cabal.installed "build" [ "cabal-install", "happy", "alex", "shake" ] 
 		, configureEmacs "build"
 		-- configure docker authent to pull images from dockerhub
-		, withPrivData (PrivFile "docker-auth-token") (Context "dev.capital-match.com") 
+		, ignoreInfo $ withPrivData (PrivFile "docker-auth-token") (Context "dev.capital-match.com") 
 		   (\ getdata -> property "docker auth configured"
 										   $ getdata $ \ tok -> liftIO $ (writeFile "/home/build/.ssh/.dockercfg" (unlines 
 												  [ "{"
@@ -204,14 +204,14 @@ devhost = propertyList "creating devserver configuration"
   ]
 
 -- | Configures a hakyll-generated site as a vhost served by apache
-standardHakyllSite :: UserName -> GroupName -> HostName -> [ HostName ] -> Property
+standardHakyllSite :: UserName -> GroupName -> HostName -> [ HostName ] -> Property NoInfo
 standardHakyllSite usr grp siteName aliases = propertyList ("serving " ++ siteName ++ " site")  [
   File.dirExists parent
   , File.dirExists directory
   , File.ownerGroup parent usr grp
   , File.ownerGroup directory usr grp
-  ,directory `File.mode` combineModes [ownerWriteMode, ownerReadMode, ownerExecuteMode, groupReadMode, groupExecuteMode]
-  ,toProp $ Apache.siteEnabled siteName $ apachecfg siteName aliases directory NoSSL []
+  , directory `File.mode` combineModes [ownerWriteMode, ownerReadMode, ownerExecuteMode, groupReadMode, groupExecuteMode]
+  , ignoreInfo $ toProp $ Apache.siteEnabled siteName $ apachecfg siteName aliases directory NoSSL []
   ]
   where
 	parent = "/srv/nono-data" </> siteName
@@ -313,7 +313,7 @@ instance Show Locale where
 en_us_UTF_8 :: Locale
 en_us_UTF_8 = EncodingLocale En US UTF_8
 
-setDefaultLocale :: Locale -> Property
+setDefaultLocale :: Locale -> Property NoInfo
 setDefaultLocale locale = propertyList ("setting default locale to " ++ localeString) [
   Apt.installed ["locales"]
   , scriptProperty [ "locale-gen " ++ localeString ]
@@ -325,7 +325,7 @@ setDefaultLocale locale = propertyList ("setting default locale to " ++ localeSt
   where
     localeString = show locale 
 
-installLatestDocker :: Property
+installLatestDocker :: Property NoInfo
 installLatestDocker = propertyList ("install latest docker from official repositories")
 					  [
   cmdProperty "apt-key" [ "adv"
@@ -341,7 +341,7 @@ installLatestDocker = propertyList ("install latest docker from official reposit
   ]
   
 
-accountWithIds :: UserName -> Int -> Int -> Property
+accountWithIds :: UserName -> Int -> Int -> Property NoInfo
 accountWithIds user uid gid = check (isNothing <$> catchMaybeIO (User.homedir user)) $ propertyList
   ("account for " ++ user ++ " with uid:" ++ (show uid) ++ "/gid:" ++ (show gid))				  
   [
@@ -355,7 +355,7 @@ accountWithIds user uid gid = check (isNothing <$> catchMaybeIO (User.homedir us
 	]
   ]
 
-configureEmacs :: UserName -> Property
+configureEmacs :: UserName -> Property NoInfo
 configureEmacs user = property ("configuring emacs for haskell development for user " ++ user) $ do
   home <- liftIO $ User.homedir user
   ensureProperty $ combineProperties "creating emacs configuration" 

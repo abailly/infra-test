@@ -10,7 +10,7 @@ import Utility.SafeCommand
 
 type PackageName = String
 
-updated :: UserName -> Property
+updated :: UserName -> Property NoInfo
 updated user = property ("update cabal and all packages for user " ++ user) $ do
                   home <- liftIO $ homedir user
                   ensureProperty $ userScriptProperty user [ "cabal update" ]
@@ -20,7 +20,7 @@ updated user = property ("update cabal and all packages for user " ++ user) $ do
 
 		  
 -- |Install latest versions of the listed packages
-installed :: UserName -> [ PackageName ] -> Property
+installed :: UserName -> [ PackageName ] -> Property NoInfo
 installed user pkgs = prop
   where
 	pkgList =  concat (intersperse " " (map shellEscape pkgs))
