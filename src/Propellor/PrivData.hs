@@ -1,6 +1,19 @@
 {-# LANGUAGE PackageImports #-}
+{-# LANGUAGE FlexibleContexts #-}
 
-module Propellor.PrivData where
+module Propellor.PrivData (
+	withPrivData,
+	withSomePrivData,
+	addPrivData,
+	setPrivData,
+	dumpPrivData,
+	editPrivData,
+	filterPrivData,
+	listPrivDataFields,
+	makePrivDataDir,
+	decryptPrivData,
+	PrivMap,
+) where
 
 import Control.Applicative
 import System.IO
@@ -15,6 +28,7 @@ import qualified Data.Map as M
 import qualified Data.Set as S
 
 import Propellor.Types
+import Propellor.Types.PrivData
 import Propellor.Message
 import Propellor.Info
 import Propellor.Gpg
@@ -30,7 +44,7 @@ import Utility.Env
 import Utility.Table
 
 -- | Allows a Property to access the value of a specific PrivDataField,
--- for use in a specific Context.
+-- for use in a specific Context or HostContext.
 --
 -- Example use:
 --
@@ -47,22 +61,62 @@ import Utility.Table
 -- being used, which is necessary to ensure that the privdata is sent to
 -- the remote host by propellor.
 withPrivData
-	:: PrivDataField
-	-> Context
-	-> (((PrivData -> Propellor Result) -> Propellor Result) -> Property)
-	-> Property
-withPrivData field context@(Context cname) mkprop = addinfo $ mkprop $ \a ->
-	maybe missing a =<< liftIO (getLocalPrivData field context)
-  where
-	missing = liftIO $ do
-		warningMessage $ "Missing privdata " ++ show field ++ " (for " ++ cname ++ ")"
-		putStrLn $ "Fix this by running: propellor --set '" ++ show field ++ "' '" ++ cname ++ "'"
-		return FailedChange
-	addinfo p = p { propertyInfo = propertyInfo p <> mempty { _privDataFields = S.singleton (field, context) } }
+	:: (IsContext c, IsPrivDataSource s, IsProp (Property i))
+	=> s
+	-> c
+	-> (((PrivData -> Propellor Result) -> Propellor Result) -> Property i)
+	-> Property HasInfo
+withPrivData s = withPrivData' snd [s]
 
-addPrivDataField :: (PrivDataField, Context) -> Property
-addPrivDataField v = pureInfoProperty (show v) $
-	mempty { _privDataFields = S.singleton v }
+-- Like withPrivData, but here any one of a list of PrivDataFields can be used.
+withSomePrivData
+	:: (IsContext c, IsPrivDataSource s, IsProp (Property i))
+	=> [s]
+	-> c
+	-> ((((PrivDataField, PrivData) -> Propellor Result) -> Propellor Result) -> Property i)
+	-> Property HasInfo
+withSomePrivData = withPrivData' id
+
+withPrivData' 
+	:: (IsContext c, IsPrivDataSource s, IsProp (Property i))
+	=> ((PrivDataField, PrivData) -> v)
+	-> [s]
+	-> c
+	-> (((v -> Propellor Result) -> Propellor Result) -> Property i)
+	-> Property HasInfo
+withPrivData' feed srclist c mkprop = addinfo $ mkprop $ \a ->
+	maybe missing (a . feed) =<< getM get fieldlist
+  where
+  	get field = do
+		context <- mkHostContext hc <$> asks hostName
+		maybe Nothing (\privdata -> Just (field, privdata))
+			<$> liftIO (getLocalPrivData field context)
+	missing = do
+		Context cname <- mkHostContext hc <$> asks hostName
+		warningMessage $ "Missing privdata " ++ intercalate " or " fieldnames ++ " (for " ++ cname ++ ")"
+		liftIO $ putStrLn $ "Fix this by running:"
+		liftIO $ showSet $
+			map (\s -> (privDataField s, Context cname, describePrivDataSource s)) srclist
+		return FailedChange
+	addinfo p = infoProperty
+		(propertyDesc p)
+		(propertySatisfy p)
+		(propertyInfo p <> mempty { _privData = privset })
+		(propertyChildren p)
+	privset = S.fromList $ map (\s -> (privDataField s, describePrivDataSource s, hc)) srclist
+	fieldnames = map show fieldlist
+	fieldlist = map privDataField srclist
+	hc = asHostContext c
+
+showSet :: [(PrivDataField, Context, Maybe PrivDataSourceDesc)] -> IO ()
+showSet l = forM_ l $ \(f, Context c, md) -> do
+	putStrLn $ "  propellor --set '" ++ show f ++ "' '" ++ c ++ "' \\"
+	maybe noop (\d -> putStrLn $ "    " ++ d) md
+	putStrLn ""
+
+addPrivData :: (PrivDataField, Maybe PrivDataSourceDesc, HostContext) -> Property HasInfo
+addPrivData v = pureInfoProperty (show v) $
+	mempty { _privData = S.singleton v }
 
 {- Gets the requested field's value, in the specified context if it's
  - available, from the host's local privdata cache. -}
@@ -74,11 +128,12 @@ getLocalPrivData field context =
 
 type PrivMap = M.Map (PrivDataField, Context) PrivData
 
-{- Get only the set of PrivData that the Host's Info says it uses. -}
+-- | Get only the set of PrivData that the Host's Info says it uses.
 filterPrivData :: Host -> PrivMap -> PrivMap
 filterPrivData host = M.filterWithKey (\k _v -> S.member k used)
   where
-	used = _privDataFields $ hostInfo host
+	used = S.map (\(f, _, c) -> (f, mkHostContext c (hostName host))) $
+		_privData $ hostInfo host
 
 getPrivData :: PrivDataField -> Context -> PrivMap -> Maybe PrivData
 getPrivData field context = M.lookup (field, context)
@@ -108,10 +163,17 @@ editPrivData field context = do
 listPrivDataFields :: [Host] -> IO ()
 listPrivDataFields hosts = do
 	m <- decryptPrivData
-	showtable "Currently set data:" $
-		map mkrow (M.keys m)
-	showtable "Data that would be used if set:" $
-		map mkrow (M.keys $ M.difference wantedmap m)
+	
+	section "Currently set data:"
+	showtable $ map mkrow (M.keys m)
+	let missing = M.keys $ M.difference wantedmap m
+	
+	unless (null missing) $ do
+		section "Missing data that would be used if set:"
+		showtable $ map mkrow missing
+
+		section "How to set missing data:"
+		showSet $ map (\(f, c) -> (f, c, join $ M.lookup (f, c) descmap)) missing
   where
 	header = ["Field", "Context", "Used by"]
 	mkrow k@(field, (Context context)) =
@@ -119,12 +181,13 @@ listPrivDataFields hosts = do
 		, shellEscape context
 		, intercalate ", " $ sort $ fromMaybe [] $ M.lookup k usedby
 		]
-	mkhostmap host = M.fromList $ map (\k -> (k, [hostName host])) $
-		S.toList $ _privDataFields $ hostInfo host
-	usedby = M.unionsWith (++) $ map mkhostmap hosts
+	mkhostmap host mkv = M.fromList $ map (\(f, d, c) -> ((f, mkHostContext c (hostName host)), mkv d)) $
+		S.toList $ _privData $ hostInfo host
+	usedby = M.unionsWith (++) $ map (\h -> mkhostmap h $ const $ [hostName h]) hosts
 	wantedmap = M.fromList $ zip (M.keys usedby) (repeat "")
-	showtable desc rows = do
-		putStrLn $ "\n" ++ desc
+	descmap = M.unions $ map (\h -> mkhostmap h id) hosts
+	section desc = putStrLn $ "\n" ++ desc
+	showtable rows = do
 		putStr $ unlines $ formatTable $ tableWithHeader header rows
 
 setPrivDataTo :: PrivDataField -> Context -> PrivData -> IO ()

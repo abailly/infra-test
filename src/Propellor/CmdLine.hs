@@ -17,6 +17,7 @@ import Propellor
 import Propellor.Gpg
 import Propellor.Git
 import Propellor.Spin
+import Propellor.Types.CmdLine
 import qualified Propellor.Property.Docker as Docker
 import qualified Propellor.Property.Chroot as Chroot
 import qualified Propellor.Shim as Shim
@@ -58,7 +59,6 @@ processCmdLine = go =<< getArgs
 	go ("--help":_) = do	
 		usage stdout
 		exitFailure
-	go ("--update":_:[]) = return $ Update Nothing
 	go ("--boot":_:[]) = return $ Update Nothing -- for back-compat
 	go ("--serialized":s:[]) = serialized Serialized s
 	go ("--continue":s:[]) = serialized Continue s
@@ -102,8 +102,9 @@ defaultMain hostlist = do
 	go _ (DockerChain hn cid) = Docker.chain hostlist hn cid
 	go _ (DockerInit hn) = Docker.init hn
 	go _ (GitPush fin fout) = gitPushHelper fin fout
+	go _ (Relay h) = forceConsole >> updateFirst (Update (Just h)) (update (Just h))
 	go _ (Update Nothing) = forceConsole >> fetchFirst (onlyprocess (update Nothing))
-	go _ (Update (Just h)) = forceConsole >> fetchFirst (update (Just h))
+	go _ (Update (Just h)) = update (Just h)
 	go _ Merge = mergeSpin
 	go True cmdline@(Spin _ _) = buildFirst cmdline $ go False cmdline
 	go True cmdline = updateFirst cmdline $ go False cmdline

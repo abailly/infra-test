@@ -27,15 +27,17 @@
 --
 -- See config.hs for a more complete example, and clone Propellor's
 -- git repository for a deployable system using Propellor:
--- git clone <git://git.kitenet.net/propellor>
+-- git clone <git://git.joeyh.name/propellor>
 
 module Propellor (
 	  module Propellor.Types
 	, module Propellor.Property
+	, module Propellor.Property.List
 	, module Propellor.Property.Cmd
-	, module Propellor.Host
+	, module Propellor.PropAccum
 	, module Propellor.Info
 	, module Propellor.PrivData
+	, module Propellor.Types.PrivData
 	, module Propellor.Engine
 	, module Propellor.Exception
 	, module Propellor.Message
@@ -47,12 +49,14 @@ module Propellor (
 import Propellor.Types
 import Propellor.Property
 import Propellor.Engine
+import Propellor.Property.List
 import Propellor.Property.Cmd
 import Propellor.PrivData
+import Propellor.Types.PrivData
 import Propellor.Message
 import Propellor.Exception
 import Propellor.Info
-import Propellor.Host
+import Propellor.PropAccum
 
 import Utility.PartialPrelude as X
 import Utility.Process as X

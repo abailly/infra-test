@@ -1,28 +1,131 @@
-propellor (1.1.0) UNRELEASED; urgency=medium
+propellor (2.0.0) unstable; urgency=medium
 
-  * propellor --spin can now deploy propellor to hosts that do not have 
-    git, ghc, or apt-get. This is accomplished by uploading a fairly
-    portable precompiled tarball of propellor.
+  * Property has been converted to a GADT, and will be Property NoInfo
+    or Property HasInfo.
+    This was done to make sure that ensureProperty is only used on
+    properties that do not have Info.
+    Transition guide:
+    - Change all "Property" to "Property NoInfo" or "Property WithInfo"
+      (The compiler can tell you if you got it wrong!)
+    - To construct a RevertableProperty, it is useful to use the new
+      (<!>) operator
+    - Constructing a list of properties can be problimatic, since
+      Property NoInto and Property WithInfo are different types and cannot
+      appear in the same list. To deal with this, "props" has been added,
+      and can built up a list of properties of different types,
+      using the same (&) and (!) operators that are used to build
+      up a host's properties.
+  * Add descriptions of how to set missing fields to --list-fields output.
+  * Properties now form a tree, instead of the flat list used before.
+    This includes the properties used inside a container.
+  * Fix info propagation from fallback combinator's second Property.
+  * Added systemd configuration properties.
+  * Added journald configuration properties.
+  * Added more network interface configuration properties.
+  * Implemented OS.preserveNetwork.
+
+ -- Joey Hess <id@joeyh.name>  Sun, 25 Jan 2015 15:23:08 -0400
+
+propellor (1.3.2) unstable; urgency=medium
+
+  * SSHFP records are also generated for CNAMES of hosts.
+  * Merge Utiity modules from git-annex.
+  * Ignore bogus DNS when spinning the local host.
+
+ -- Joey Hess <id@joeyh.name>  Thu, 15 Jan 2015 14:02:07 -0400
+
+propellor (1.3.1) unstable; urgency=medium
+
+  * Fix bug that prevented deploying ssh host keys when the file for the
+    key didn't already exist.
+  * DNS records for hosts with known ssh public keys now automatically
+    include SSHFP records.
+
+ -- Joey Hess <id@joeyh.name>  Sun, 04 Jan 2015 19:51:34 -0400
+
+propellor (1.3.0) unstable; urgency=medium
+
+  * --spin checks if the DNS matches any configured IP address property
+    of the host, and if not, sshes to the host by IP address.
+  * Detect #774376 and refuse to use docker if the system is so broken
+    that docker exec doesn't enter a chroot.
+  * Update intermediary propellor in --spin --via
+  * Added support for DNSSEC.
+  * Ssh.hostKey and Ssh.hostKeys no longer install public keys from
+    the privdata. Instead, the public keys are included in the
+    configuration. (API change)
+  * Ssh.hostKeys now removes any host keys of types that the host is not
+    configured to have.
+  * sshPubKey is renamed to Ssh.pubKey, and has an added SshKeyType
+    parameter. (API change)
+  * CloudAtCost.deCruft no longer forces randomHostKeys.
+  * Fix build with process 1.2.1.0.
+
+ -- Joey Hess <id@joeyh.name>  Sun, 04 Jan 2015 17:17:44 -0400
+
+propellor (1.2.2) unstable; urgency=medium
+
+  * Revert ensureProperty warning message, too many false positives in places
+    where Info is correctly propigated. Better approach needed.
+
+ -- Joey Hess <id@joeyh.name>  Sun, 21 Dec 2014 21:41:11 -0400
+
+propellor (1.2.1) unstable; urgency=medium
+
+  * Added CryptPassword to PrivDataField, for password hashes as produced 
+    by crypt(3).
+  * User.hasPassword and User.hasSomePassword will now use either
+    a CryptPassword or a Password from privdata, depending on which is set.
+
+ -- Joey Hess <id@joeyh.name>  Wed, 17 Dec 2014 16:30:44 -0400
+
+propellor (1.2.0) unstable; urgency=medium
+
+  * Display a warning when ensureProperty is used on a property which has
+    Info and is so prevented from propigating it.
+  * Removed boolProperty; instead the new toResult can be used. (API change)
+  * Include Propellor.Property.OS, which was accidentially left out of the
+    cabal file in the last release.
+  * Fix Apache.siteEnabled to update the config file and reload apache when
+    configuration has changed.
+
+ -- Joey Hess <id@joeyh.name>  Tue, 09 Dec 2014 00:05:09 -0400
+
+propellor (1.1.0) unstable; urgency=medium
+
   * --spin target --via relay causes propellor to bounce through an
     intermediate relay host, which handles any necessary uploads
     when provisioning the target host.
   * --spin can be passed multiple hosts, and it will provision each host
     in turn.
-  * Hostname parameters not containing dots are looked up in the DNS to
-    find the full hostname.
-  * Added group-related properties. Thanks, Félix Sipma.
-  * Added Git.barerepo. Thanks, Félix Sipma.
-  * hasSomePassword and hasPassword now default to using the name of the
-    host as the Context for the password. To specify a different context,
-    use hasSomePassword' and hasPassword' (API change)
   * Add --merge, to combine multiple --spin commits into a single, more useful
     commit.
+  * Hostname parameters not containing dots are looked up in the DNS to
+    find the full hostname.
+  * propellor --spin can now deploy propellor to hosts that do not have 
+    git, ghc, or apt-get. This is accomplished by uploading a fairly
+    portable precompiled tarball of propellor.
+  * Propellor.Property.OS contains properties that can be used to do a clean
+    reinstall of the OS of an existing host. This can be used, for example,
+    to do an in-place conversion from Fedora to Debian.
+    This is experimental; use with caution!
+  * Added group-related properties. Thanks, Félix Sipma.
+  * Added Git.barerepo. Thanks, Félix Sipma.
+  * Added Grub.installed and Grub.boots properties.
+  * New HostContext can be specified when a PrivData value varies per host.
+  * hasSomePassword and hasPassword now default to using HostContext.
+    To specify a different context, use hasSomePassword' and
+    hasPassword' (API change)
+  * hasSomePassword and hasPassword now make sure shadow passwords are enabled.
   * cron.runPropellor now runs propellor, rather than using its Makefile.
     This is more robust.
   * propellor.debug can be set in the git config to enable more persistent
     debugging output.
+  * Run apt-cache policy with LANG=C so it works on other locales.
+  * endAction can be used to register an action to run once propellor
+    has successfully run on a host.
 
- -- Joey Hess <joeyh@debian.org>  Sat, 22 Nov 2014 00:12:35 -0400
+ -- Joey Hess <id@joeyh.name>  Sun, 07 Dec 2014 15:23:59 -0400
 
 propellor (1.0.0) unstable; urgency=medium
 

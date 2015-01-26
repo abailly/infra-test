@@ -1,5 +1,5 @@
 Name: propellor
-Version: 1.1.0
+Version: 2.0.0
 Cabal-Version: >= 1.6
 License: BSD3
 Maintainer: Joey Hess <id@joeyh.name>
@@ -18,7 +18,6 @@ Extra-Source-Files:
   config-simple.hs
   config-joey.hs
   config.hs
-  propellor.1
   debian/changelog
   debian/README.Debian
   debian/compat
@@ -78,6 +77,7 @@ Library
     Propellor.Property.Cron
     Propellor.Property.Debootstrap
     Propellor.Property.Dns
+    Propellor.Property.DnsSec
     Propellor.Property.Docker
     Propellor.Property.File
     Propellor.Property.Firewall
@@ -85,13 +85,17 @@ Library
     Propellor.Property.Gpg
     Propellor.Property.Group
     Propellor.Property.Grub
+    Propellor.Property.Journald
+    Propellor.Property.Mount
     Propellor.Property.Network
     Propellor.Property.Nginx
     Propellor.Property.Obnam
     Propellor.Property.OpenId
+    Propellor.Property.OS
     Propellor.Property.Postfix
     Propellor.Property.Prosody
     Propellor.Property.Reboot
+    Propellor.Property.List
     Propellor.Property.Scheduled
     Propellor.Property.Service
     Propellor.Property.Ssh
@@ -106,7 +110,7 @@ Library
     Propellor.Property.SiteSpecific.GitHome
     Propellor.Property.SiteSpecific.JoeySites
     Propellor.Property.SiteSpecific.GitAnnexBuilder
-    Propellor.Host
+    Propellor.PropAccum
     Propellor.CmdLine
     Propellor.Info
     Propellor.Message
@@ -117,8 +121,12 @@ Library
     Propellor.Types.Chroot
     Propellor.Types.Docker
     Propellor.Types.Dns
+    Propellor.Types.Empty
     Propellor.Types.OS
     Propellor.Types.PrivData
+    Propellor.Types.Val
+    Propellor.Types.Result
+    Propellor.Types.CmdLine
   Other-Modules:
     Propellor.Git
     Propellor.Gpg
@@ -130,11 +138,13 @@ Library
     Propellor.Property.Chroot.Util
     Utility.Applicative
     Utility.Data
+    Utility.DataUnits
     Utility.Directory
     Utility.Env
     Utility.Exception
     Utility.FileMode
     Utility.FileSystemEncoding
+    Utility.HumanNumber
     Utility.LinuxMkLibs
     Utility.Misc
     Utility.Monad
@@ -152,4 +162,4 @@ Library
 
 source-repository head
   type: git
-  location: git://git.kitenet.net/propellor.git
+  location: git://git.joeyh.name/propellor.git

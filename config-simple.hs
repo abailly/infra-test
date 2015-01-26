@@ -18,7 +18,6 @@ import qualified Propellor.Property.Sudo as Sudo
 import qualified Propellor.Property.User as User
 import qualified Propellor.Property.Group as Group
 --import qualified Propellor.Property.Hostname as Hostname
---import qualified Propellor.Property.Reboot as Reboot
 --import qualified Propellor.Property.Tor as Tor
 import qualified Propellor.Property.Docker as Docker
 import qualified Propellor.Property.Git as Git

@@ -1,6 +1,7 @@
 module Propellor.Property.Dns (
 	module Propellor.Types.Dns,
 	primary,
+	signedPrimary,
 	secondary,
 	secondaryFor,
 	mkSOA,
@@ -16,7 +17,10 @@ import Propellor
 import Propellor.Types.Dns
 import Propellor.Property.File
 import qualified Propellor.Property.Apt as Apt
+import qualified Propellor.Property.Ssh as Ssh
 import qualified Propellor.Property.Service as Service
+import Propellor.Property.Scheduled
+import Propellor.Property.DnsSec
 import Utility.Applicative
 
 import qualified Data.Map as M
@@ -35,6 +39,9 @@ import Data.List
 -- Will cause that hostmame and its alias to appear in the zone file,
 -- with the configured IP address.
 --
+-- Also, if a host has a ssh public key configured, a SSHFP record will
+-- be automatically generated for it.
+--
 -- The [(BindDomain, Record)] list can be used for additional records
 -- that cannot be configured elsewhere. This often includes NS records,
 -- TXT records and perhaps CNAMEs pointing at hosts that propellor does
@@ -51,30 +58,42 @@ import Data.List
 -- In either case, the secondary dns server Host should have an ipv4 and/or
 -- ipv6 property defined.
 primary :: [Host] -> Domain -> SOA -> [(BindDomain, Record)] -> RevertableProperty
-primary hosts domain soa rs = RevertableProperty setup cleanup
+primary hosts domain soa rs = setup <!> cleanup
   where
-	setup = withwarnings (check needupdate baseprop)
-		`requires` servingZones
+	setup = setupPrimary zonefile id hosts domain soa rs
 		`onChange` Service.reloaded "bind9"
-	cleanup = check (doesFileExist zonefile) $
-		property ("removed dns primary for " ++ domain)
-			(makeChange $ removeZoneFile zonefile)
-			`requires` namedConfWritten
-			`onChange` Service.reloaded "bind9"
+	cleanup = cleanupPrimary zonefile domain
+		`onChange` Service.reloaded "bind9"
 
-	(partialzone, zonewarnings) = genZone hosts domain soa
-	zone = partialzone { zHosts = zHosts partialzone ++ rs }
 	zonefile = "/etc/bind/propellor/db." ++ domain
-	baseprop = Property ("dns primary for " ++ domain)
-		(makeChange $ writeZoneFile zone zonefile)
-		(addNamedConf conf)
-	withwarnings p = adjustProperty p $ \satisfy -> do
+
+setupPrimary :: FilePath -> (FilePath -> FilePath) -> [Host] -> Domain -> SOA -> [(BindDomain, Record)] -> Property HasInfo
+setupPrimary zonefile mknamedconffile hosts domain soa rs = 
+	withwarnings baseprop
+		`requires` servingZones
+  where
+	hostmap = hostMap hosts
+	-- Known hosts with hostname located in the domain.
+	indomain = M.elems $ M.filterWithKey (\hn _ -> inDomain domain $ AbsDomain $ hn) hostmap
+	
+	(partialzone, zonewarnings) = genZone indomain hostmap domain soa
+	baseprop = infoProperty ("dns primary for " ++ domain) satisfy
+		(addNamedConf conf) []
+	satisfy = do
+		sshfps <- concat <$> mapM (genSSHFP domain) (M.elems hostmap)
+		let zone = partialzone
+			{ zHosts = zHosts partialzone ++ rs ++ sshfps }
+		ifM (liftIO $ needupdate zone)
+			( makeChange $ writeZoneFile zone zonefile
+			, noChange
+			)
+	withwarnings p = adjustPropertySatisfy p $ \a -> do
 		mapM_ warningMessage $ zonewarnings ++ secondarywarnings
-		satisfy
+		a
 	conf = NamedConf
 		{ confDomain = domain
 		, confDnsServerType = Master
-		, confFile = zonefile
+		, confFile = mknamedconffile zonefile
 		, confMasters = []
 		, confAllowTransfer = nub $
 			concatMap (\h -> hostAddresses h hosts) $
@@ -87,7 +106,7 @@ primary hosts domain soa rs = RevertableProperty setup cleanup
 	nssecondaries = mapMaybe (domainHostName <=< getNS) rootRecords
 	rootRecords = map snd $
 		filter (\(d, _r) -> d == RootDomain || d == AbsDomain domain) rs
-	needupdate = do
+	needupdate zone = do
 		v <- readZonePropellorFile zonefile
 		return $ case v of
 			Nothing -> True
@@ -96,6 +115,64 @@ primary hosts domain soa rs = RevertableProperty setup cleanup
 				let oldserial = sSerial (zSOA oldzone)
 				    z = zone { zSOA = (zSOA zone) { sSerial = oldserial } }
 				in z /= oldzone || oldserial < sSerial (zSOA zone)
+
+
+cleanupPrimary :: FilePath -> Domain -> Property NoInfo
+cleanupPrimary zonefile domain = check (doesFileExist zonefile) $
+	property ("removed dns primary for " ++ domain)
+		(makeChange $ removeZoneFile zonefile)
+		`requires` namedConfWritten
+
+-- | Primary dns server for a domain, secured with DNSSEC.
+--
+-- This is like `primary`, except the resulting zone
+-- file is signed.
+-- The Zone Signing Key (ZSK) and Key Signing Key (KSK)
+-- used in signing it are taken from the PrivData.
+--
+-- As a side effect of signing the zone, a
+-- </var/cache/bind/dsset-domain.>
+-- file will be created. This file contains the DS records
+-- which need to be communicated to your domain registrar
+-- to make DNSSEC be used for your domain. Doing so is outside
+-- the scope of propellor (currently). See for example the tutorial
+-- <https://www.digitalocean.com/community/tutorials/how-to-setup-dnssec-on-an-authoritative-bind-dns-server--2>
+--
+-- The 'Recurrance' controls how frequently the signature
+-- should be regenerated, using a new random salt, to prevent
+-- zone walking attacks. `Weekly Nothing` is a reasonable choice.
+--
+-- To transition from 'primary' to 'signedPrimary', you can revert
+-- the 'primary' property, and add this property.
+--
+-- Note that DNSSEC zone files use a serial number based on the unix epoch.
+-- This is different from the serial number used by 'primary', so if you
+-- want to later disable DNSSEC you will need to adjust the serial number
+-- passed to mkSOA to ensure it is larger.
+signedPrimary :: Recurrance -> [Host] -> Domain -> SOA -> [(BindDomain, Record)] -> RevertableProperty
+signedPrimary recurrance hosts domain soa rs = setup <!> cleanup
+  where
+	setup = combineProperties ("dns primary for " ++ domain ++ " (signed)") 
+		(props
+			& setupPrimary zonefile signedZoneFile hosts domain soa rs'
+			& zoneSigned domain zonefile
+			& forceZoneSigned domain zonefile `period` recurrance
+		)
+		`onChange` Service.reloaded "bind9"
+	
+	cleanup = cleanupPrimary zonefile domain
+		`onChange` toProp (revert (zoneSigned domain zonefile))
+		`onChange` Service.reloaded "bind9"
+	
+	-- Include the public keys into the zone file.
+	rs' = include PubKSK : include PubZSK : rs
+	include k = (RootDomain, INCLUDE (keyFn domain k))
+
+	-- Put DNSSEC zone files in a different directory than is used for
+	-- the regular ones. This allows 'primary' to be reverted and
+	-- 'signedPrimary' enabled, without the reverted property stomping
+	-- on the new one's settings.
+	zonefile = "/etc/bind/propellor/dnssec/db." ++ domain
 
 -- | Secondary dns server for a domain.
 --
@@ -110,7 +187,7 @@ secondary hosts domain = secondaryFor (otherServers Master hosts domain) hosts d
 -- | This variant is useful if the primary server does not have its DNS
 -- configured via propellor.
 secondaryFor :: [HostName] -> [Host] -> Domain -> RevertableProperty
-secondaryFor masters hosts domain = RevertableProperty setup cleanup
+secondaryFor masters hosts domain = setup <!> cleanup
   where
 	setup = pureInfoProperty desc (addNamedConf conf)
 		`requires` servingZones
@@ -138,12 +215,12 @@ otherServers wantedtype hosts domain =
 -- | Rewrites the whole named.conf.local file to serve the zones
 -- configured by `primary` and `secondary`, and ensures that bind9 is
 -- running.
-servingZones :: Property
+servingZones :: Property NoInfo
 servingZones = namedConfWritten
 	`onChange` Service.reloaded "bind9"
 	`requires` Apt.serviceInstalledRunning "bind9"
 
-namedConfWritten :: Property
+namedConfWritten :: Property NoInfo
 namedConfWritten = property "named.conf configured" $ do
 	zs <- getNamedConf
 	ensureProperty $
@@ -216,6 +293,8 @@ rField (MX _ _) = "MX"
 rField (NS _) = "NS"
 rField (TXT _) = "TXT"
 rField (SRV _ _ _ _) = "SRV"
+rField (SSHFP _ _ _) = "SSHFP"
+rField (INCLUDE _) = "$INCLUDE"
 
 rValue :: Record -> String
 rValue (Address (IPv4 addr)) = addr
@@ -229,6 +308,12 @@ rValue (SRV priority weight port target) = unwords
 	, show port
 	, dValue target
 	]
+rValue (SSHFP x y s) = unwords
+	[ show x
+	, show y
+	, s
+	]
+rValue (INCLUDE f) = f
 rValue (TXT s) = [q] ++ filter (/= q) s ++ [q]
   where
 	q = '"'
@@ -294,12 +379,16 @@ genZoneFile (Zone zdomain soa rs) = unlines $
 	header = com $ "BIND zone file for " ++ zdomain ++ ". Generated by propellor, do not edit."
 
 genRecord :: Domain -> (BindDomain, Record) -> String
+genRecord _ (_, record@(INCLUDE _)) = intercalate "\t"
+		[ rField record
+		, rValue record
+		]
 genRecord zdomain (domain, record) = intercalate "\t"
-	[ domainHost zdomain domain
-	, "IN"
-	, rField record
-	, rValue record
-	]
+		[ domainHost zdomain domain
+		, "IN"
+		, rField record
+		, rValue record
+		]
 
 genSOA :: SOA -> [String]
 genSOA soa = 
@@ -331,19 +420,17 @@ type WarningMessage = String
 
 -- | Generates a Zone for a particular Domain from the DNS properies of all
 -- hosts that propellor knows about that are in that Domain.
-genZone :: [Host] -> Domain -> SOA -> (Zone, [WarningMessage])
-genZone hosts zdomain soa =
+--
+-- Does not include SSHFP records.
+genZone :: [Host] -> M.Map HostName Host -> Domain -> SOA -> (Zone, [WarningMessage])
+genZone inzdomain hostmap zdomain soa =
 	let (warnings, zhosts) = partitionEithers $ concat $ map concat
 		[ map hostips inzdomain
 		, map hostrecords inzdomain
-		, map addcnames (M.elems m)
+		, map addcnames (M.elems hostmap)
 		]
 	in (Zone zdomain soa (simplify zhosts), warnings)
   where
-	m = hostMap hosts
-	-- Known hosts with hostname located in the zone's domain.
-	inzdomain = M.elems $ M.filterWithKey (\hn _ -> inDomain zdomain $ AbsDomain $ hn) m
-	
 	-- Each host with a hostname located in the zdomain
 	-- should have 1 or more IPAddrs in its Info.
 	--
@@ -423,3 +510,32 @@ addNamedConf conf = mempty { _namedconf = NamedConfMap (M.singleton domain conf)
 
 getNamedConf :: Propellor (M.Map Domain NamedConf)
 getNamedConf = asks $ fromNamedConfMap . _namedconf . hostInfo
+
+-- | Generates SSHFP records for hosts in the domain (or with CNAMES
+-- in the domain) that have configured ssh public keys.
+--
+-- This is done using ssh-keygen, so sadly needs IO.
+genSSHFP :: Domain -> Host -> Propellor [(BindDomain, Record)]
+genSSHFP domain h = concatMap mk . concat <$> (gen =<< get)
+  where
+	get = fromHost [h] hostname Ssh.getPubKey
+	gen = liftIO . mapM genSSHFP' . M.elems . fromMaybe M.empty
+	mk r = mapMaybe (\d -> if inDomain domain d then Just (d, r) else Nothing)
+		(AbsDomain hostname : cnames)
+	cnames = mapMaybe getCNAME $ S.toList $ _dns info
+	hostname = hostName h
+	info = hostInfo h
+
+genSSHFP' :: String -> IO [Record]
+genSSHFP' pubkey = withTmpFile "sshfp" $ \tmp tmph -> do
+		hPutStrLn tmph pubkey
+		hClose tmph
+		s <- catchDefaultIO "" $
+			readProcess "ssh-keygen" ["-r", "dummy", "-f", tmp]
+		return $ mapMaybe (parse . words) $ lines s
+  where
+	parse ("dummy":"IN":"SSHFP":x:y:s:[]) = do
+		x' <- readish x
+		y' <- readish y
+		return $ SSHFP x' y' s
+	parse _ = Nothing
