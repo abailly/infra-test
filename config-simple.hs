@@ -134,6 +134,8 @@ hosts =
           & standardHakyllSite "admin" "admin" "atdd.io" ["www.atdd.io"]
           & standardHakyllSite "admin" "admin" "bailly.me" []
           & standardHakyllSite "admin" "admin" "blog.foldlabs.com" []
+		  & Git.bareRepo ("/home/admin/work" </> "cm.igitur.io.git") "admin" Git.NotShared
+          & standardHakyllSite "admin" "admin" "cm.igitur.io" []
           & User.accountFor "www2"
 		  & User.hasGroup "www2" "admin"
 		  & Ssh.authorizedKeys "www2" (Context "www2.capital-match.com")
