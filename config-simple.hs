@@ -70,7 +70,7 @@ hosts =
 		  & File.ownerGroup "/home/build/ci" "build" "build"
 		  -- configure app
 		  & Git.clonedBare "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/capital-match.git"
-		  & File.hasContent "/home/build/capital-match.git/hooks/post-receive"
+		  & File.hasContent "/home/build/capital-match/hooks/post-receive"
 		  [ "#!/bin/sh"
 		  , "read START STOP BRANCH"
 		  , "echo \"branch: $BRANCH\""
@@ -94,12 +94,12 @@ hosts =
 		  , "  if [ -f $NGINXCONF ]; then"
 		  , "    cd $NGINXCONF && git pull"
       , "  else "
-      , "    cd /home/build && git clone capital-match.git nginxconf"
+      , "    cd /home/build && git clone capital-match nginxconf"
 		  , "  fi"
-		  , "  docker run -d --cidfile=/home/build/.nginx.cid docker run -d -p 80:80 -p 443:443 -v $NGINXCONF/nginx.conf:/etc/nginx/nginx.conf -v $NGINXCONF/sites-enabled:/etc/nginx/sites-enabled -v $NGINXCONF/certs:/etc/nginx/certs -v $NGINXCONF/logs:/var/log/nginx --name capital-nginx capital/nginx"
+		  , "  docker run -d --cidfile=/home/build/.nginx.cid -p 80:80 -p 443:443 -v $NGINXCONF/nginx.conf:/etc/nginx/nginx.conf -v $NGINXCONF/sites-enabled:/etc/nginx/sites-enabled -v $NGINXCONF/certs:/etc/nginx/certs -v $NGINXCONF/logs:/var/log/nginx --name capital-nginx capital/nginx"
 		  , "fi"
 	      ]
-		  & File.mode "/home/build/capital-match.git/hooks/post-receive" (combineModes  (ownerWriteMode:readModes ++ executeModes))
+		  & File.mode "/home/build/capital-match/hooks/post-receive" (combineModes  (ownerWriteMode:readModes ++ executeModes))
 		  
 		, host "dev.capital-match.com"
 		-- TODO fix host key to some known value so that it nver changes in known_hosts files
