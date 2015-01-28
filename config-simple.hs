@@ -84,7 +84,14 @@ hosts =
 		  , "    rm /home/build/.app.cid"
 		  , "  fi"
 		  , "  # run as build user"
-		  , "  docker run -d --cidfile=/home/build/.app.cid -p 80:8080 -v /home/build/data:/data capital/app:latest"
+		  , "  docker run -d --cidfile=/home/build/.app.cid -p 8080:8080 -v /home/build/data:/data capital/app:latest"
+		  , "  if [ -f /home/build/.nginx.cid ]; then"
+		  , "    docker kill $(cat /home/build/.nginx.cid)"
+		  , "    rm /home/build/.nginx.cid"
+		  , "  fi"
+		  , "  # run nginx as build user"
+      , "  export NGINXCONF=/home/build/"
+		  , "  docker run -d --cidfile=$NGINXCONF.app.cid docker run -d -p $HOSTPORT:80 -p 443:443 -v $NGINXCONF/nginx.conf:/etc/nginx/nginx.conf -v $NGINXCONF/sites-enabled:/etc/nginx/sites-enabled -v $NGINXCONF/certs:/etc/nginx/certs -v $NGINXCONF/logs:/var/log/nginx --name capital-nginx capital/nginx"
 		  , "fi"
 	      ]
 		  & File.mode "/home/build/capital-match.git/hooks/post-receive" (combineModes  (ownerWriteMode:readModes ++ executeModes))
