@@ -127,7 +127,7 @@ hosts =
           & standardHakyllSite "www2" "admin" "www2.capital-match.com" []
 
         , host "gypsyfire"
-          & Apt.installed [ "emacs24", "zlib1g-dev" ]
+          & installEmacs4Haskell "willem"
           & configureEmacs "willem"
         -- new systemsthinking.net
         , host "advandenende.eu"
@@ -344,9 +344,9 @@ accountWithIds user uid gid = check (isNothing <$> catchMaybeIO (User.homedir us
 installEmacs4Haskell :: UserName -> Property NoInfo
 installEmacs4Haskell user = property ("installing emacs and cabal packages for haskell development for user " ++ user) $ do
    ensureProperty $ combineProperties "installing emacs and supporting haskell packages"
-     [ Cabal.updated "build"
+     [ Cabal.updated "willem"
 	, Apt.installed [ "emacs24", "zlib1g-dev" ]  
-	, Cabal.installed "build" [ "cabal-install", "happy", "alex", "shake" ] 
+       , Cabal.installed "willem" [ "cabal-install", "happy", "alex", "shake" ] 
      ]
      
 configureEmacs :: UserName -> Property NoInfo
