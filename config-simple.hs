@@ -127,6 +127,7 @@ hosts =
           & standardHakyllSite "www2" "admin" "www2.capital-match.com" []
 
         , host "gypsyfire"
+          & devhost
           & installEmacs4Haskell "willem"
           & configureEmacs "willem"
         -- new systemsthinking.net
