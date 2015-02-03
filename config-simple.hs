@@ -128,7 +128,7 @@ hosts =
 
         , host "gypsyfire"
           & Apt.installed [ "emacs24", "zlib1g-dev" ]
-          & configureEmacs "wille"
+          & configureEmacs "willem"
         -- new systemsthinking.net
         , host "advandenende.eu"
               & Apt.serviceInstalledRunning "apache2"
