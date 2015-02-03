@@ -126,7 +126,7 @@ hosts =
 		  & Git.bareRepo ("/home/www2/work" </> "www2.capital-match.com.git") "www2" Git.NotShared
           & standardHakyllSite "www2" "admin" "www2.capital-match.com" []
 
-        , host "gypsifire"
+        , host "gypsyfire"
           & Apt.installed [ "emacs24", "zlib1g-dev" ]  
         -- new systemsthinking.net
         , host "advandenende.eu"
