@@ -126,6 +126,8 @@ hosts =
 		  & Git.bareRepo ("/home/www2/work" </> "www2.capital-match.com.git") "www2" Git.NotShared
           & standardHakyllSite "www2" "admin" "www2.capital-match.com" []
 
+        , host "gypsifire"
+          & Apt.installed [ "emacs24", "zlib1g-dev" ]  
         -- new systemsthinking.net
         , host "advandenende.eu"
               & Apt.serviceInstalledRunning "apache2"
@@ -172,7 +174,7 @@ devhost = propertyList "creating devserver configuration"
 		, ignoreInfo $ Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
 		, Git.cloned "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/app" (Just "master")
 		, Cabal.updated "build"
-		, Apt.installed [ "emacs24", "zlib1g-dev" ]  -- TODO syntax highlighting for haskell and clojure
+		, Apt.installed [ "emacs24", "zlib1g-dev" ]  
 		, Cabal.installed "build" [ "cabal-install", "happy", "alex", "shake" ] 
 		, configureEmacs "build"
 		-- configure docker authent to pull images from dockerhub
