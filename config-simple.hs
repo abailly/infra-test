@@ -174,9 +174,7 @@ devhost = propertyList "creating devserver configuration"
 		, Ssh.knownExternalHost "bitbucket.org" "build"
 		, ignoreInfo $ Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
 		, Git.cloned "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/app" (Just "master")
-		, Cabal.updated "build"
-		, Apt.installed [ "emacs24", "zlib1g-dev" ]  
-		, Cabal.installed "build" [ "cabal-install", "happy", "alex", "shake" ] 
+	        , installEmacs4Haskell "build"
 		, configureEmacs "build"
 		-- configure docker authent to pull images from dockerhub
 		, ignoreInfo $ withPrivData (PrivFile "docker-auth-token") (Context "dev.capital-match.com") 
@@ -343,6 +341,14 @@ accountWithIds user uid gid = check (isNothing <$> catchMaybeIO (User.homedir us
 	]
   ]
 
+installEmacs4Haskell :: UserName -> Property NoInfo
+installEmacs4Haskell user = property ("installing emacs and cabal packages for haskell development for user " ++ user) $ do
+   ensureProperty $ combineProperties "installing emacs and supporting haskell packages"
+     [ Cabal.updated "build"
+	, Apt.installed [ "emacs24", "zlib1g-dev" ]  
+	, Cabal.installed "build" [ "cabal-install", "happy", "alex", "shake" ] 
+     ]
+     
 configureEmacs :: UserName -> Property NoInfo
 configureEmacs user = property ("configuring emacs for haskell development for user " ++ user) $ do
   home <- liftIO $ User.homedir user
