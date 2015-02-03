@@ -127,7 +127,8 @@ hosts =
           & standardHakyllSite "www2" "admin" "www2.capital-match.com" []
 
         , host "gypsyfire"
-          & Apt.installed [ "emacs24", "zlib1g-dev" ]  
+          & Apt.installed [ "emacs24", "zlib1g-dev" ]
+          & configureEmacs "wille"
         -- new systemsthinking.net
         , host "advandenende.eu"
               & Apt.serviceInstalledRunning "apache2"
@@ -348,7 +349,7 @@ configureEmacs user = property ("configuring emacs for haskell development for u
   ensureProperty $ combineProperties "creating emacs configuration" 
 	[ File.dirExists (home </> ".emacs.d")
 	, File.hasContent ("/root/.tmux.conf") [ "setw -g xterm-keys on" ]
-	, File.ownerGroup (home </> ".emacs.d") "build" "build"
+	, File.ownerGroup (home </> ".emacs.d") user user
 	, File.hasContent (home </> ".emacs.d/install-package.el")
 		  [ "(require 'package)"
 		  , "(package-initialize)"
@@ -554,5 +555,5 @@ configureEmacs user = property ("configuring emacs for haskell development for u
 		 , "    )"
 		 , "  ) "
          ]
-	, File.ownerGroup (home </> ".emacs") "build" "build"
+	, File.ownerGroup (home </> ".emacs") user user
 	]
