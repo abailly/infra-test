@@ -163,22 +163,22 @@ devhost = propertyList "creating devserver configuration"
 		-- configure user build
 		, accountWithIds "build" 2020 2020
 		, User.hasGroup "build" "docker"
-		, ignoreInfo $ Ssh.keyImported SshRsa "build" (Context "beta.capital-match.com")
+		, ignoreInfo $ Ssh.keyImported SshRsa "build" (Context "dev")
 		, File.containsLines "/home/build/.ssh/config"
 		[ "Host bitbucket.org"
-						  , "\tUser git"
-						  , "\tHostname bitbucket.org"
-						  , "\tPreferredAuthentications publickey"
-						  , "\tIdentityFile \"/home/build/.ssh/id_rsa\""
-						  ]
+				, "\tUser git"
+				, "\tHostname bitbucket.org"
+				, "\tPreferredAuthentications publickey"
+				, "\tIdentityFile \"/home/build/.ssh/id_rsa\""
+				]
 		, Git.configuredUser "build" "Igitur Ventures Ltd." "igitur@igitur.io"
 		, Ssh.knownExternalHost "bitbucket.org" "build"
-		, ignoreInfo $ Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
+		, ignoreInfo $ Ssh.authorizedKeys "build" (Context "dev")
 		, Git.cloned "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/app" (Just "master")
-	        , installEmacs4Haskell "build"
+		, installEmacs4Haskell "build"
 		, configureEmacs "build"
 		-- configure docker authent to pull images from dockerhub
-		, ignoreInfo $ withPrivData (PrivFile "docker-auth-token") (Context "dev.capital-match.com") 
+		, ignoreInfo $ withPrivData (PrivFile "docker-auth-token") (Context "dev") 
 		   (\ getdata -> property "docker auth configured"
 										   $ getdata $ \ tok -> liftIO $ (writeFile "/home/build/.ssh/.dockercfg" (unlines 
 												  [ "{"
