@@ -154,41 +154,40 @@ hosts =
 	--, host "foo.example.com" = ...
 	]
 
-devhost :: Property NoInfo
-devhost = propertyList "creating devserver configuration" 
-	[ setDefaultLocale en_us_UTF_8
-		, Git.installed
-		, installLatestDocker
-		, Fig.installed
-		-- configure user build
-		, accountWithIds "build" 2020 2020
-		, User.hasGroup "build" "docker"
-		, ignoreInfo $ Ssh.keyImported SshRsa "build" (Context "dev")
-		, File.containsLines "/home/build/.ssh/config"
-		[ "Host bitbucket.org"
-				, "\tUser git"
-				, "\tHostname bitbucket.org"
-				, "\tPreferredAuthentications publickey"
-				, "\tIdentityFile \"/home/build/.ssh/id_rsa\""
-				]
-		, Git.configuredUser "build" "Igitur Ventures Ltd." "igitur@igitur.io"
-		, Ssh.knownExternalHost "bitbucket.org" "build"
-		, ignoreInfo $ Ssh.authorizedKeys "build" (Context "dev")
-		, Git.cloned "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/app" (Just "master")
-		, installEmacs4Haskell "build"
-		, configureEmacs "build"
-		-- configure docker authent to pull images from dockerhub
-		, ignoreInfo $ withPrivData (PrivFile "docker-auth-token") (Context "dev") 
-		   (\ getdata -> property "docker auth configured"
-										   $ getdata $ \ tok -> liftIO $ (writeFile "/home/build/.ssh/.dockercfg" (unlines 
-												  [ "{"
-												  , "\"https://index.docker.io/v1/\":"
-												  , "   {\"auth\":\""  ++ tok ++ "\""
-												  , ", \"email\":\"dev@capital-match.com\"}"
-		                                        , "}"
-		                                        ]) >> return MadeChange) `catchIO` const (return FailedChange))
-		, userScriptProperty "build" [ "cd app", "./build.sh" ]
-  ]
+devhost :: Property HasInfo
+devhost = propertyList "creating devserver configuration" $ props 
+		  & setDefaultLocale en_us_UTF_8
+		  & Git.installed
+		  & installLatestDocker
+		  & Fig.installed
+		  -- configure user build
+		  & accountWithIds "build" 2020 2020
+		  & User.hasGroup "build" "docker"
+		  & Ssh.keyImported SshRsa "build" (Context "dev")
+		  & File.containsLines "/home/build/.ssh/config"
+		  [ "Host bitbucket.org"
+		  		, "\tUser git"
+		  		, "\tHostname bitbucket.org"
+		  		, "\tPreferredAuthentications publickey"
+		  		, "\tIdentityFile \"/home/build/.ssh/id_rsa\""
+		  		]
+		  & Git.configuredUser "build" "Igitur Ventures Ltd." "igitur@igitur.io"
+		  & Ssh.knownExternalHost "bitbucket.org" "build"
+		  & Ssh.authorizedKeys "build" (Context "dev")
+		  & Git.cloned "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/app" (Just "master")
+		  & installEmacs4Haskell "build"
+		  & configureEmacs "build"
+		  -- configure docker authent to pull images from dockerhub
+		  & withPrivData (PrivFile "docker-auth-token") (Context "dev") 
+		     (\ getdata -> property "docker auth configured"
+		  								   $ getdata $ \ tok -> liftIO $ (writeFile "/home/build/.ssh/.dockercfg" (unlines 
+		  										  [ "{"
+		  										  , "\"https://index.docker.io/v1/\":"
+		  										  , "   {\"auth\":\""  ++ tok ++ "\""
+		  										  , ", \"email\":\"dev@capital-match.com\"}"
+		                                          , "}"
+		                                          ]) >> return MadeChange) `catchIO` const (return FailedChange))
+		  & userScriptProperty "build" [ "cd app", "./build.sh" ]
 
 -- | Configures a hakyll-generated site as a vhost served by apache
 standardHakyllSite :: UserName -> GroupName -> HostName -> [ HostName ] -> Property NoInfo
