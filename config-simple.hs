@@ -155,7 +155,10 @@ hosts =
 	]
 
 devhost :: Property HasInfo
-devhost = propertyList "creating devserver configuration" $ props 
+devhost = propertyList "creating devserver configuration" $ props
+		  -- ipv4 takes precedence over ipv6 on ipv6 enabled host
+		  -- https://www.digitalocean.com/community/questions/how-to-disable-ubuntu-14-04-ipv6
+		  & File.containsLine "/etc/gai.conf" "precedence ::ffff:0:0/96 100"
 		  & setDefaultLocale en_us_UTF_8
 		  & Git.installed
 		  & installLatestDocker
