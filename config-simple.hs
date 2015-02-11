@@ -192,7 +192,8 @@ devhost = propertyList "creating devserver configuration" $ props
 		  										  , ", \"email\":\"dev@capital-match.com\"}"
 		                                          , "}"
 		                                          ]) >> return MadeChange) `catchIO` const (return FailedChange))
-		  & userScriptProperty "build" [ "cd app", "./build.sh" ]
+                  -- replace with .dockercfg from willem (to put in privdata) and 'docker pull mostalive/etet-withemacs' docker re-tagging manual, until we have capital-match repos on dockerhub
+		  -- & userScriptProperty "build" [ "cd app", "./build.sh" ]
 
 -- | Configures a hakyll-generated site as a vhost served by apache
 standardHakyllSite :: UserName -> GroupName -> HostName -> [ HostName ] -> Property NoInfo
