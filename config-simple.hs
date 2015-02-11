@@ -130,13 +130,14 @@ hosts =
           & devhost
           & installEmacs4Haskell "willem"
           & configureEmacs "willem"
-          & Cabal.installed "willem" ["hakyll"]
+          & Cabal.installed "willem" ["stylish-haskell","hasktags"]
         -- new systemsthinking.net
         , host "advandenende.eu"
               & Apt.serviceInstalledRunning "apache2"
               & Apt.serviceInstalledRunning "mariadb"
               & User.accountFor "admin"
               & Apt.installed ["php5","libapache2-mod-php5","php5-mysql","locales"]
+
 
           & Docker.installed
           & setDefaultLocale en_us_UTF_8
