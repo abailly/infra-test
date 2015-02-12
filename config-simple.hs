@@ -1,28 +1,28 @@
 -- This is the main configuration file for Propellor, and is used to build
 -- the propellor program.
 
-import Propellor
-import Propellor.CmdLine
+import           Propellor
+import           Propellor.CmdLine
 -- import Propellor.Property.Scheduled
-import Utility.FileMode
-import System.Posix.Files
+import           System.Posix.Files
+import           Utility.FileMode
 
-import qualified Propellor.Property.File as File
-import qualified Propellor.Property.Cabal as Cabal
-import qualified Propellor.Property.Apt as Apt
-import qualified Propellor.Property.Apache as Apache
+import qualified Propellor.Property.Apache   as Apache
+import qualified Propellor.Property.Apt      as Apt
+import qualified Propellor.Property.Cabal    as Cabal
+import qualified Propellor.Property.File     as File
 -- import qualified Propellor.Property.Network as Network
-import qualified Propellor.Property.Ssh as Ssh
-import qualified Propellor.Property.Cron as Cron
-import qualified Propellor.Property.Sudo as Sudo
-import qualified Propellor.Property.User as User
-import qualified Propellor.Property.Group as Group
+import qualified Propellor.Property.Cron     as Cron
+import qualified Propellor.Property.Group    as Group
+import qualified Propellor.Property.Ssh      as Ssh
+import qualified Propellor.Property.Sudo     as Sudo
+import qualified Propellor.Property.User     as User
 --import qualified Propellor.Property.Hostname as Hostname
 --import qualified Propellor.Property.Tor as Tor
-import qualified Propellor.Property.Docker as Docker
-import qualified Propellor.Property.Git as Git
-import Propellor.Property.Firewall as Firewall
-import Propellor.Property.Fig as Fig
+import qualified Propellor.Property.Docker   as Docker
+import           Propellor.Property.Fig      as Fig
+import           Propellor.Property.Firewall as Firewall
+import qualified Propellor.Property.Git      as Git
 
 main :: IO ()
 main = defaultMain hosts
@@ -75,7 +75,7 @@ hosts =
 		  & File.hasContent "/home/build/capital-match/hooks/post-receive"
       ["#!/bin/sh","#set -x","#set -e","read START STOP BRANCH","echo \"branch: $BRANCH\"","# do not send non review branches to CI","if expr \"$BRANCH\" : '.*/review' ; then ","  # assume docker is in path, we have right to use it and CI container is built","  docker run ci_server addpatch --name=$STOP --host=beta.capital-match.com","elif expr \"$BRANCH\" : '.*/master' ; then ","  if [ -f /home/build/.app.cid ]; then","    docker kill $(cat /home/build/.app.cid)","    rm /home/build/.app.cid","  fi","  # run as build user","  docker run -d --cidfile=/home/build/.app.cid -p 8080:8080 -v /home/build/data:/data capital/app:latest","  if [ -f /home/build/.nginx.cid ]; then","    docker kill $(cat /home/build/.nginx.cid)","    rm /home/build/.nginx.cid","  fi","  # clone or pull nginx config as build user","  export NGINXCONF=/home/build/nginxconf/nginx","  if [ -d /home/build/nginxconf ]; then","    cd /home/build/nginxconf && git pull origin master","  else ","    cd /home/build && git clone capital-match nginxconf","  fi","  docker run -d --cidfile=/home/build/.nginx.cid -p 80:80 -p 443:443 -v $NGINXCONF/nginx.conf:/etc/nginx/nginx.conf -v $NGINXCONF/sites-enabled:/etc/nginx/sites-enabled -v $NGINXCONF/certs:/etc/nginx/certs -v $NGINXCONF/logs:/var/log/nginx capital/nginx","fi"]
 		  & File.mode "/home/build/capital-match/hooks/post-receive" (combineModes  (ownerWriteMode:readModes ++ executeModes))
-		  
+
 		, host "dev.capital-match.com"
 		-- TODO fix host key to some known value so that it nver changes in known_hosts files
       & devhost
@@ -108,7 +108,7 @@ hosts =
           & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 80)
           & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 443)
           & Firewall.rule INPUT DROP   Everything
-          
+
 
 		  -- TODO Change hosting -> DO
         , host "92.243.3.60"
@@ -132,12 +132,14 @@ hosts =
           & devhost
           & installEmacs4Haskell "willem"
           & configureEmacs "willem"
+          & Cabal.installed "willem" ["stylish-haskell","hasktags"]
         -- new systemsthinking.net
         , host "advandenende.eu"
               & Apt.serviceInstalledRunning "apache2"
               & Apt.serviceInstalledRunning "mariadb"
               & User.accountFor "admin"
               & Apt.installed ["php5","libapache2-mod-php5","php5-mysql","locales"]
+
 
           & Docker.installed
           & setDefaultLocale en_us_UTF_8
@@ -152,7 +154,7 @@ hosts =
           & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 80)
           & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 443)
           & Firewall.rule INPUT DROP   Everything
-               
+
 	--, host "foo.example.com" = ...
 	]
 
@@ -183,16 +185,17 @@ devhost = propertyList "creating devserver configuration" $ props
 		  & installEmacs4Haskell "build"
 		  & configureEmacs "build"
 		  -- configure docker authent to pull images from dockerhub
-		  & withPrivData (PrivFile "docker-auth-token") (Context "dev") 
+		  & withPrivData (PrivFile "docker-auth-token") (Context "dev")
 		     (\ getdata -> property "docker auth configured"
-		  								   $ getdata $ \ tok -> liftIO $ (writeFile "/home/build/.ssh/.dockercfg" (unlines 
+		  								   $ getdata $ \ tok -> liftIO $ (writeFile "/home/build/.ssh/.dockercfg" (unlines
 		  										  [ "{"
 		  										  , "\"https://index.docker.io/v1/\":"
 		  										  , "   {\"auth\":\""  ++ tok ++ "\""
 		  										  , ", \"email\":\"dev@capital-match.com\"}"
 		                                          , "}"
 		                                          ]) >> return MadeChange) `catchIO` const (return FailedChange))
-		  & userScriptProperty "build" [ "cd app", "./build.sh" ]
+                  -- replace with .dockercfg from willem (to put in privdata) and 'docker pull mostalive/etet-withemacs' docker re-tagging manual, until we have capital-match repos on dockerhub
+		  -- & userScriptProperty "build" [ "cd app", "./build.sh" ]
 
 -- | Configures a hakyll-generated site as a vhost served by apache
 standardHakyllSite :: UserName -> GroupName -> HostName -> [ HostName ] -> Property NoInfo
@@ -211,7 +214,7 @@ standardHakyllSite usr grp siteName aliases = propertyList ("serving " ++ siteNa
 data VHostSSL = NoSSL
               | WithSSL
               deriving (Eq,Show,Read)
-                       
+
 -- | Configuration for apache virtual host
 -- stolen from JoeysSites
 apachecfg :: HostName             -- ^Host's name
@@ -224,7 +227,7 @@ apachecfg hn aliases documentRoot withSSL middle
   | withSSL == WithSSL = vhost NoSSL  ++ vhost WithSSL
   | otherwise         = vhost NoSSL
   where
-	vhost ssl = 
+	vhost ssl =
 		[ "<VirtualHost *:"++show port++">"
 		, "  ServerAdmin arnaud@foldlabs.com"
 		, "  ServerName "++hn++":"++show port
@@ -269,13 +272,13 @@ apachecfg hn aliases documentRoot withSSL middle
 
 mainhttpscert :: VHostSSL -> Apache.ConfigFile
 mainhttpscert NoSSL   = []
-mainhttpscert WithSSL = 
+mainhttpscert WithSSL =
 	[ "  SSLEngine on"
 	, "  SSLCertificateFile /etc/ssl/certs/web.pem"
 	, "  SSLCertificateKeyFile /etc/ssl/private/web.pem"
 	, "  SSLCertificateChainFile /etc/ssl/certs/startssl.pem"
 	]
-		
+
 
 data Lang = En
           | Fr
@@ -283,7 +286,7 @@ data Lang = En
 instance Show Lang where
   show En = "en"
   show Fr = "fr"
-   
+
 data Country = US
              | FR
              deriving (Show)
@@ -293,7 +296,7 @@ data Encoding = UTF_8
 
 instance Show Encoding where
   show UTF_8 = "UTF-8"
-  
+
 data Locale = SimpleLocale Lang Country
             | EncodingLocale Lang Country Encoding
 
@@ -314,7 +317,7 @@ setDefaultLocale locale = propertyList ("setting default locale to " ++ localeSt
     ]
   ]
   where
-    localeString = show locale 
+    localeString = show locale
 
 installLatestDocker :: Property NoInfo
 installLatestDocker = propertyList ("install latest docker from official repositories")
@@ -326,22 +329,22 @@ installLatestDocker = propertyList ("install latest docker from official reposit
 						, "36A1D7869245C8950F966E92D8576A8BA88D21E9"
 						]
   , File.containsLines "/etc/apt/sources.list.d/docker.list"
-	 ["deb https://get.docker.com/ubuntu docker main"] 
+	 ["deb https://get.docker.com/ubuntu docker main"]
   , Apt.update
   , Apt.installed [ "lxc-docker" ]
   ]
-  
+
 
 accountWithIds :: UserName -> Int -> Int -> Property NoInfo
 accountWithIds user uid gid = check (isNothing <$> catchMaybeIO (User.homedir user)) $ propertyList
-  ("account for " ++ user ++ " with uid:" ++ (show uid) ++ "/gid:" ++ (show gid))				  
+  ("account for " ++ user ++ " with uid:" ++ (show uid) ++ "/gid:" ++ (show gid))
   [
   Group.exists user (Just  gid),
   cmdProperty "adduser"
 	[ "--disabled-password"
 	, "--gecos", ""
-	, "--uid", (show uid) 
-	, "--gid", (show gid) 
+	, "--uid", (show uid)
+	, "--gid", (show gid)
 	, user
 	]
   ]
@@ -350,14 +353,14 @@ installEmacs4Haskell :: UserName -> Property NoInfo
 installEmacs4Haskell user = property ("installing emacs and cabal packages for haskell development for user " ++ user) $ do
    ensureProperty $ combineProperties "installing emacs and supporting haskell packages"
      [ Cabal.updated user
-	 , Apt.installed [ "emacs24", "zlib1g-dev" ]  
-	 , Cabal.installed user [ "cabal-install", "happy", "alex", "shake" ] 
+	 , Apt.installed [ "emacs24", "zlib1g-dev" ]
+	 , Cabal.installed user [ "cabal-install", "happy", "alex", "shake", "ghci-ng" ]
 	 ]
-     
+
 configureEmacs :: UserName -> Property NoInfo
 configureEmacs user = property ("configuring emacs for haskell development for user " ++ user) $ do
   home <- liftIO $ User.homedir user
-  ensureProperty $ combineProperties "creating emacs configuration" 
+  ensureProperty $ combineProperties "creating emacs configuration"
 	[ File.dirExists (home </> ".emacs.d")
 	, File.hasContent ("/root/.tmux.conf") [ "setw -g xterm-keys on" ]
 	, File.ownerGroup (home </> ".emacs.d") user user
