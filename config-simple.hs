@@ -68,6 +68,8 @@ hosts =
 		  & "/home/build/ci.git/hooks/post-receive" `File.mode` combineModes [ownerWriteMode, ownerReadMode, ownerExecuteMode, groupReadMode, groupExecuteMode]
 		  & File.dirExists "/home/build/ci"
 		  & File.ownerGroup "/home/build/ci" "build" "build"
+		  & File.dirExists "/home/build/.ci"
+		  & File.ownerGroup "/home/build/.ci" "build" "build"
 		  -- configure app
 		  & Git.clonedBare "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/capital-match.git"
 		  & File.hasContent "/home/build/capital-match/hooks/post-receive"
@@ -193,7 +195,7 @@ devhost = propertyList "creating devserver configuration" $ props
 		                                          , "}"
 		                                          ]) >> return MadeChange) `catchIO` const (return FailedChange))
                   -- replace with .dockercfg from willem (to put in privdata) and 'docker pull mostalive/etet-withemacs' docker re-tagging manual, until we have capital-match repos on dockerhub
-		  -- & userScriptProperty "build" [ "cd app", "./build.sh" ]
+		  & userScriptProperty "build" [ "cd app", "./build.sh" ]
 
 -- | Configures a hakyll-generated site as a vhost served by apache
 standardHakyllSite :: UserName -> GroupName -> HostName -> [ HostName ] -> Property NoInfo
