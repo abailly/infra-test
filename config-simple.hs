@@ -354,7 +354,7 @@ installEmacs4Haskell user = property ("installing emacs and cabal packages for h
    ensureProperty $ combineProperties "installing emacs and supporting haskell packages"
      [ Cabal.updated user
 	 , Apt.installed [ "emacs24", "zlib1g-dev" ]
-	 , Cabal.installed user [ "cabal-install", "happy", "alex", "shake", "ghci-ng" ]
+	 , Cabal.installed user [ "cabal-install", "happy", "alex", "shake" ]
 	 ]
 
 configureEmacs :: UserName -> Property NoInfo
