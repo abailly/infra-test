@@ -351,11 +351,13 @@ accountWithIds user uid gid = check (isNothing <$> catchMaybeIO (User.homedir us
 
 installEmacs4Haskell :: UserName -> Property NoInfo
 installEmacs4Haskell user = property ("installing emacs and cabal packages for haskell development for user " ++ user) $ do
-   ensureProperty $ combineProperties "installing emacs and supporting haskell packages"
-     [ Cabal.updated user
-	 , Apt.installed [ "emacs24", "zlib1g-dev" ]
-	 , Cabal.installed user [ "cabal-install-1.20.03","Cabal-1.20.03", "happy", "alex", "shake" ]
-	 ]
+  ensureProperty $ combineProperties "installing emacs and supporting haskell packages"
+    [ Cabal.updated user
+    , Apt.installed [ "emacs24", "zlib1g-dev" ]
+    , Cabal.installed user [ "cabal-install-1.20.03"]
+    , Cabal.updated user 
+    , Cabal.installed user ["happy", "alex", "shake" ]
+    ]
 
 configureEmacs :: UserName -> Property NoInfo
 configureEmacs user = property ("configuring emacs for haskell development for user " ++ user) $ do
