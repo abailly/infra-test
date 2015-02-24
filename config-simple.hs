@@ -378,7 +378,7 @@ configureEmacs user = property ("configuring emacs for haskell development for u
 		  , "(package-refresh-contents)"
 		  , "(mapc 'package-install pkg-to-install)"
 		 ]
-    , userScriptProperty user [ "emacs --batch --eval \"(defconst pkg-to-install '(flycheck auto-complete haskell-mode ghc ghci-completion projectile flx-ido clojure-mode))\" -l $HOME/.emacs.d/install-package.el" ]
+    , userScriptProperty user [ "emacs --batch --eval \"(defconst pkg-to-install '(flycheck auto-complete haskell-mode ghc projectile flx-ido clojure-mode))\" -l $HOME/.emacs.d/install-package.el" ]
 	, File.hasContent (home </> ".emacs")
 		 [ "(add-to-list 'exec-path \"~/.cabal/bin\")"
     	 , "(menu-bar-mode 0)"
