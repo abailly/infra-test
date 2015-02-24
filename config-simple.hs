@@ -12,7 +12,7 @@ import qualified Propellor.Property.Apt      as Apt
 import qualified Propellor.Property.Cabal    as Cabal
 import qualified Propellor.Property.File     as File
 -- import qualified Propellor.Property.Network as Network
-import qualified Propellor.Property.Cron     as Cron
+--import qualified Propellor.Property.Cron     as Cron
 import qualified Propellor.Property.Group    as Group
 import qualified Propellor.Property.Ssh      as Ssh
 import qualified Propellor.Property.Sudo     as Sudo
@@ -32,7 +32,6 @@ main = defaultMain hosts
 hosts :: [Host]
 hosts =
 	[ host "beta.capital-match.com"
-          & Cron.runPropellor "30 * * * *"
           & Git.installed
 		  & installLatestDocker
 		  & Fig.installed
