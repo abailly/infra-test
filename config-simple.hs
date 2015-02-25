@@ -77,7 +77,10 @@ hosts =
 
 		, host "dev.capital-match.com"
 		-- TODO fix host key to some known value so that it nver changes in known_hosts files
-      & devhost
+				  & devhost
+				  & installGhc783
+				  & installJava
+
     , host "angel"
       & devhost
     , host "test.atdd.io"
@@ -209,6 +212,25 @@ standardHakyllSite usr grp siteName aliases = propertyList ("serving " ++ siteNa
   where
 	parent = "/srv/nono-data" </> siteName
 	directory = parent </> "_site"
+
+-- this is very crude...
+installGhc783 :: Property NoInfo
+installGhc783 = scriptProperty [ "wget http://www.haskell.org/ghc/dist/7.8.3/ghc-7.8.3-x86_64-unknown-linux-deb7.tar.bz2"
+							   , "tar xvfj ghc-7.8.3-x86_64-unknown-linux-deb7.tar.bz2"
+							   , "cd ghc-7.8.3"
+							   , "./configure"
+							   , "make install"
+							   ]
+
+installJava :: Property NoInfo
+installJava = scriptProperty [ "DEBIAN_FRONTEND=noninteractive apt-get install -y software-properties-common python-software-properties"
+							 ,  "add-apt-repository -y ppa:webupd8team/java"
+							 ,  "apt-get update -q"
+							 ,  "echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections"
+							 ,  "echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections"
+							 , "DEBIAN_FRONTEND=noninteractive apt-get install -y oracle-java8-installer"
+							 , "apt-get clean"
+							 ]
 
 data VHostSSL = NoSSL
               | WithSSL
