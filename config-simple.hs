@@ -31,8 +31,17 @@ main = defaultMain hosts
 -- Edit this to configure propellor!
 hosts :: [Host]
 hosts =
-	[ host "beta.capital-match.com"
-          & Git.installed
+	[ host "lending.capital-match.com"
+	& withPrivData (PrivFile "nginx-private-key") (Context "lending.capital-match.com")
+	  (\ getdata -> property "setting nginx private key"
+					$ getdata $ \ tok -> liftIO $ ((writeFile "/etc/nginx/conf/ssl.key" tok) >> return MadeChange) `catchIO` const (return FailedChange))
+	& "/etc/nginx/conf/ssl.key" `File.mode` combineModes [ownerWriteMode, ownerReadMode]
+
+	& withPrivData (PrivFile "nginx-public-cert") (Context "lending.capital-match.com")
+	  (\ getdata -> property "setting nginx certificate chain"
+					$ getdata $ \ tok -> liftIO $ ((writeFile "/etc/nginx/conf/ssl-unified.crt" tok) >> return MadeChange) `catchIO` const (return FailedChange))
+	, host "beta.capital-match.com"
+	& Git.installed
 		  & installLatestDocker
 		  & Fig.installed
           -- configure user build
