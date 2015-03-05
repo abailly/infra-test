@@ -19,6 +19,7 @@ import qualified Propellor.Property.Sudo     as Sudo
 import qualified Propellor.Property.User     as User
 --import qualified Propellor.Property.Hostname as Hostname
 --import qualified Propellor.Property.Tor as Tor
+import           Capital.Property.Docker
 import qualified Capital.Property.Lending    as Lending
 import           Capital.Property.Locale
 import qualified Propellor.Property.Docker   as Docker
@@ -34,53 +35,7 @@ main = defaultMain hosts
 hosts :: [Host]
 hosts =
 	[ host "lending.capital-match.com"
-        & File.dirExists "/etc/nginx/conf/certs/"
-	& withPrivData (PrivFile "nginx-private-key") (Context "lending.capital-match.com")
-	  (\ getdata -> property "setting nginx private key"
-					$ getdata $ \ tok -> liftIO $ ((writeFile "/etc/nginx/conf/certs/ssl.key" tok) >> return MadeChange) `catchIO` const (return FailedChange))
-	& "/etc/nginx/conf/certs/ssl.key" `File.mode` combineModes [ownerWriteMode, ownerReadMode]
-
-	& withPrivData (PrivFile "nginx-public-cert") (Context "lending.capital-match.com")
-	  (\ getdata -> property "setting nginx certificate chain"
-					$ getdata $ \ tok -> liftIO $ ((writeFile "/etc/nginx/conf/ssl-unified.crt" tok) >> return MadeChange) `catchIO` const (return FailedChange))
-        & installLatestDocker
-        & User.accountFor "build"
-          & User.hasGroup "build" "docker"
-	  & Sudo.binaryEnabledFor "/usr/bin/docker" "build"
- 		& Ssh.keyImported SshRsa "build" (Context "beta.capital-match.com")
-		  & File.containsLines "/home/build/.ssh/config"
-		  [ "Host bitbucket.org"
-				  , "\tUser git"
-				  , "\tHostname bitbucket.org"
-				  , "\tPreferredAuthentications publickey"
-				  , "\tIdentityFile \"/home/build/.ssh/id_rsa\""
-				  ]
-		  & Ssh.knownExternalHost "bitbucket.org" "build"
-		  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com") -- TODO disable or have separate keys for production
-
-          & File.hasContent "/home/build/startnginx.sh"
-          ["#!/bin/sh"
-          ,"#set -x"
-          ,"#set -e"
-          , "if [-f /home/build/.app.cid ]; then"
-          ,"    docker kill $(cat /home/build/.app.cid)"
-          ,"    rm /home/build/.app.cid"
-          ,"  fi"
-          ,"  # run as build user"
-          ,"  docker run -d --cidfile=/home/build/.app.cid -p 8080:8080 -v /home/build/data:/data capital/app:latest"
-          ,"  if [ -f /home/build/.nginx.cid ]; then"
-          ,"    docker kill $(cat /home/build/.nginx.cid)"
-          ,"    rm /home/build/.nginx.cid"
-          ,"  fi"
-          ,"  # clone or pull nginx config as build user"
-          ,"  export NGINXCONF=/home/build/nginxconf/nginx"
-          ,"  if [ -d /home/build/nginxconf ]; then"
-          ,"    cd /home/build/nginxconf && git pull origin master"
-          ,"  else "
-          ,"    cd /home/build && git clone capital-match nginxconf"
-          ,"  fi","  docker run -d --cidfile=/home/build/.nginx.cid -p 80:80 -p 443:443 -v $NGINXCONF/nginx.conf:/etc/nginx/nginx.conf -v $NGINXCONF/sites-enabled:/etc/nginx/sites-enabled -v $NGINXCONF/certs:/etc/nginx/certs -v $NGINXCONF/logs:/var/log/nginx capital/nginx"]
-		  & File.mode "/home/build/startnginx.sh" (combineModes  (ownerWriteMode:readModes ++ executeModes))
-      & File.ownerGroup "/home/build/startnginx.sh" "build" "build"
+          Lending.lendingHost
 
         , host "beta.capital-match.com"
 	& Git.installed
@@ -351,24 +306,6 @@ mainhttpscert WithSSL =
 	, "  SSLCertificateKeyFile /etc/ssl/private/web.pem"
 	, "  SSLCertificateChainFile /etc/ssl/certs/startssl.pem"
 	]
-
-
-
-installLatestDocker :: Property NoInfo
-installLatestDocker = propertyList ("install latest docker from official repositories")
-					  [
-  cmdProperty "apt-key" [ "adv"
-						, "--keyserver"
-						, "hkp://keyserver.ubuntu.com:80"
-						, "--recv-keys"
-						, "36A1D7869245C8950F966E92D8576A8BA88D21E9"
-						]
-  , File.containsLines "/etc/apt/sources.list.d/docker.list"
-	 ["deb https://get.docker.com/ubuntu docker main"]
-  , Apt.update
-  , Apt.installed [ "lxc-docker" ]
-  ]
-
 
 accountWithIds :: UserName -> Int -> Int -> Property NoInfo
 accountWithIds user uid gid = check (isNothing <$> catchMaybeIO (User.homedir user)) $ propertyList
