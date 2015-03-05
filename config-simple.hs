@@ -41,7 +41,8 @@ hosts =
 	& withPrivData (PrivFile "nginx-public-cert") (Context "lending.capital-match.com")
 	  (\ getdata -> property "setting nginx certificate chain"
 					$ getdata $ \ tok -> liftIO $ ((writeFile "/etc/nginx/conf/ssl-unified.crt" tok) >> return MadeChange) `catchIO` const (return FailedChange))
-	, host "beta.capital-match.com"
+        & installLatestDocker
+        , host "beta.capital-match.com"
 	& Git.installed
 	& installLatestDocker
 	& Fig.installed
