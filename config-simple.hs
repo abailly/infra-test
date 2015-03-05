@@ -32,11 +32,11 @@ main = defaultMain hosts
 hosts :: [Host]
 hosts =
 	[ host "lending.capital-match.com"
-        & File.dirExists "/etc/nginx/conf"
+        & File.dirExists "/etc/nginx/conf/ssl/"
 	& withPrivData (PrivFile "nginx-private-key") (Context "lending.capital-match.com")
 	  (\ getdata -> property "setting nginx private key"
-					$ getdata $ \ tok -> liftIO $ ((writeFile "/etc/nginx/conf/ssl.key" tok) >> return MadeChange) `catchIO` const (return FailedChange))
-	& "/etc/nginx/conf/ssl.key" `File.mode` combineModes [ownerWriteMode, ownerReadMode]
+					$ getdata $ \ tok -> liftIO $ ((writeFile "/etc/nginx/conf/ssl/ssl.key" tok) >> return MadeChange) `catchIO` const (return FailedChange))
+	& "/etc/nginx/conf/ssl/ssl.key" `File.mode` combineModes [ownerWriteMode, ownerReadMode]
 
 	& withPrivData (PrivFile "nginx-public-cert") (Context "lending.capital-match.com")
 	  (\ getdata -> property "setting nginx certificate chain"
