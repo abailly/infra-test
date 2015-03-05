@@ -1,16 +1,31 @@
 module Capital.Property.Lending (lendingHost) where
 
 import           Capital.Property.Docker     (installLatestDocker)
-import           Capital.Property.Locale
+
 import           Propellor
 import           Propellor.CmdLine
-import qualified Propellor.Property.File     as File
-import qualified Propellor.Property.Firewall as Firewall
+-- import Propellor.Property.Scheduled
 import           System.Posix.Files
 import           Utility.FileMode
 
+import qualified Propellor.Property.Apache   as Apache
+import qualified Propellor.Property.Apt      as Apt
+import qualified Propellor.Property.File     as File
+-- import qualified Propellor.Property.Network as Network
+--import qualified Propellor.Property.Cron     as Cron
+import qualified Propellor.Property.Group    as Group
+import qualified Propellor.Property.Ssh      as Ssh
+import qualified Propellor.Property.Sudo     as Sudo
+import qualified Propellor.Property.User     as User
+--import qualified Propellor.Property.Hostname as Hostname
+--import qualified Propellor.Property.Tor as Tor
+import           Capital.Property.Docker
+import           Capital.Property.Locale
+import qualified Propellor.Property.Docker   as Docker
+import           Propellor.Property.Firewall as Firewall
+
 firewallHttpsDockerSsh :: Property HasInfo
-firewallHttpsDockerSsh = propertyList "creating firewall for ssh, http(s) and docker" $ prop
+firewallHttpsDockerSsh = propertyList "creating firewall for ssh, http(s) and docker" $ props
         & Firewall.installed
         & Firewall.rule INPUT ACCEPT (Ctstate [ESTABLISHED,RELATED])
         & Firewall.rule INPUT ACCEPT (IFace "lo")
@@ -21,7 +36,7 @@ firewallHttpsDockerSsh = propertyList "creating firewall for ssh, http(s) and do
         & Firewall.rule INPUT DROP   Everything
 
 lendingHost :: Property HasInfo
-lendingHost = propertyList "creating devserver configuration" $ prop
+lendingHost = propertyList "creating devserver configuration" $ props
         -- ipv4 takes precedence over ipv6 on ipv6 enabled host
 	-- https://www.digitalocean.com/community/questions/how-to-disable-ubuntu-14-04-ipv6
 	& File.containsLine "/etc/gai.conf" "precedence ::ffff:0:0/96 100"

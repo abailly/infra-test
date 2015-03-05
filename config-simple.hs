@@ -35,7 +35,7 @@ main = defaultMain hosts
 hosts :: [Host]
 hosts =
 	[ host "lending.capital-match.com"
-          Lending.lendingHost
+        &  Lending.lendingHost
 
         , host "beta.capital-match.com"
 	& Git.installed

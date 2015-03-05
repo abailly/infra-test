@@ -2,9 +2,9 @@
 -- Ubuntu is quite far behind, so we don't want to use Propellors' default docker support which will
 -- replace a recent docker with ubuntu's one.
 module Capital.Property.Docker (installLatestDocker) where
+import           Propellor
 import qualified Propellor.Property.Apt  as Apt
 import qualified Propellor.Property.File as File
-
 
 installLatestDocker :: Property NoInfo
 installLatestDocker = propertyList ("install latest docker from official repositories")
