@@ -46,7 +46,7 @@ hosts =
 	& installLatestDocker
 	& Fig.installed
         & File.dirExists "/registry"
-        & Docker.docked privateRegistryContainer
+
         -- TODO need new propellor version for `period`  https://github.com/joeyh/propellor/blob/master/config-simple.hs
         -- & Docker.garbageCollected `period` Daily
 
@@ -158,7 +158,7 @@ hosts =
               & Apt.installed ["php5","libapache2-mod-php5","php5-mysql","locales"]
 
 
-          & Docker.installed
+          & installLatestDocker
           & setDefaultLocale en_us_UTF_8
           & Git.installed
           & User.accountFor "admin"
@@ -609,10 +609,3 @@ configureEmacs user = property ("configuring emacs for haskell development for u
          ]
 	, File.ownerGroup (home </> ".emacs") user user
 	]
-
--- |a private docker registry
--- https://github.com/docker/docker-registry
-privateRegistryContainer :: Docker.Container
-privateRegistryContainer = Docker.container "private-registry" "registry"
-  & Docker.publish "5000:5000"
-  & Docker.volume "/registry:/registry"
