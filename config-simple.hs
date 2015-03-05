@@ -43,8 +43,13 @@ hosts =
 					$ getdata $ \ tok -> liftIO $ ((writeFile "/etc/nginx/conf/ssl-unified.crt" tok) >> return MadeChange) `catchIO` const (return FailedChange))
 	, host "beta.capital-match.com"
 	& Git.installed
-		  & installLatestDocker
-		  & Fig.installed
+	& installLatestDocker
+	& Fig.installed
+        & File.dirExists "/registry"
+        & Docker.docked privateRegistryContainer
+        -- TODO need new propellor version for `period`  https://github.com/joeyh/propellor/blob/master/config-simple.hs
+        -- & Docker.garbageCollected `period` Daily
+
           -- configure user build
           & User.accountFor "build"
 		  & User.hasGroup "build" "docker"
@@ -604,3 +609,10 @@ configureEmacs user = property ("configuring emacs for haskell development for u
          ]
 	, File.ownerGroup (home </> ".emacs") user user
 	]
+
+-- |a private docker registry
+-- https://github.com/docker/docker-registry
+privateRegistryContainer :: Docker.Container
+privateRegistryContainer = Docker.container "private-registry" "registry"
+  & Docker.publish "5000:5000"
+  & Docker.volume "/registry:/registry"
