@@ -78,7 +78,7 @@ hosts =
           ,"    cd /home/build && git clone capital-match nginxconf"
           ,"  fi","  docker run -d --cidfile=/home/build/.nginx.cid -p 80:80 -p 443:443 -v $NGINXCONF/nginx.conf:/etc/nginx/nginx.conf -v $NGINXCONF/sites-enabled:/etc/nginx/sites-enabled -v $NGINXCONF/certs:/etc/nginx/certs -v $NGINXCONF/logs:/var/log/nginx capital/nginx","fi"]
 		  & File.mode "/home/build/startnginx.sh" (combineModes  (ownerWriteMode:readModes ++ executeModes))
-      & File.ownerGroup "/home/build/startnginx" "build" "build"
+      & File.ownerGroup "/home/build/startnginx.sh" "build" "build"
 
         , host "beta.capital-match.com"
 	& Git.installed
