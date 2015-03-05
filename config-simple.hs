@@ -32,6 +32,7 @@ main = defaultMain hosts
 hosts :: [Host]
 hosts =
 	[ host "lending.capital-match.com"
+        & File.dirExists "/etc/nginx/conf"
 	& withPrivData (PrivFile "nginx-private-key") (Context "lending.capital-match.com")
 	  (\ getdata -> property "setting nginx private key"
 					$ getdata $ \ tok -> liftIO $ ((writeFile "/etc/nginx/conf/ssl.key" tok) >> return MadeChange) `catchIO` const (return FailedChange))
