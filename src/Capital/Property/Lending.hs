@@ -1,15 +1,24 @@
 module Capital.Property.Lending (lendingHost) where
 
-import           Propellor
-import           Propellor.CmdLine
-import           Propellor.Property.Firewall as Firewall
-import qualified Propellor.Property.Git      as Git
--- import Propellor.Property.Scheduled
 import           Capital.Property.Docker     (installLatestDocker)
 import           Capital.Property.Locale
+import           Propellor
+import           Propellor.CmdLine
 import qualified Propellor.Property.File     as File
+import qualified Propellor.Property.Firewall as Firewall
 import           System.Posix.Files
 import           Utility.FileMode
+
+firewallHttpsDockerSsh :: Property HasInfo
+firewallHttpsDockerSsh = propertyList "creating firewall for ssh, http(s) and docker" $ prop
+        & Firewall.installed
+        & Firewall.rule INPUT ACCEPT (Ctstate [ESTABLISHED,RELATED])
+        & Firewall.rule INPUT ACCEPT (IFace "lo")
+        & Firewall.rule INPUT ACCEPT (IFace "docker0")
+        & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 22)
+        & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 80)
+        & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 443)
+        & Firewall.rule INPUT DROP   Everything
 
 lendingHost :: Property HasInfo
 lendingHost = propertyList "creating devserver configuration" $ prop
@@ -17,6 +26,7 @@ lendingHost = propertyList "creating devserver configuration" $ prop
 	-- https://www.digitalocean.com/community/questions/how-to-disable-ubuntu-14-04-ipv6
 	& File.containsLine "/etc/gai.conf" "precedence ::ffff:0:0/96 100"
 	& setDefaultLocale en_us_UTF_8
+        & firewallHttpsDockerSsh
 	& installLatestDocker
         & File.dirExists "/etc/nginx/conf/certs/"
 	& withPrivData (PrivFile "nginx-private-key") (Context "lending.capital-match.com")
@@ -65,3 +75,5 @@ lendingHost = propertyList "creating devserver configuration" $ prop
           ,"  fi","  docker run -d --cidfile=/home/build/.nginx.cid -p 80:80 -p 443:443 -v $NGINXCONF/nginx.conf:/etc/nginx/nginx.conf -v $NGINXCONF/sites-enabled:/etc/nginx/sites-enabled -v $NGINXCONF/certs:/etc/nginx/certs -v $NGINXCONF/logs:/var/log/nginx capital/nginx"]
 		  & File.mode "/home/build/startnginx.sh" (combineModes  (ownerWriteMode:readModes ++ executeModes))
       & File.ownerGroup "/home/build/startnginx.sh" "build" "build"
+
+
