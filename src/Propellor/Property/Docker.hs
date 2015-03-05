@@ -39,26 +39,26 @@ module Propellor.Property.Docker (
 	chain,
 ) where
 
-import Propellor hiding (init)
-import Propellor.Types.Docker
-import Propellor.Types.CmdLine
-import qualified Propellor.Property.File as File
-import qualified Propellor.Property.Apt as Apt
-import qualified Propellor.Shim as Shim
-import Utility.SafeCommand
-import Utility.Path
-import Utility.ThreadScheduler
+import           Propellor                hiding (init)
+import qualified Propellor.Property.Apt   as Apt
+import qualified Propellor.Property.File  as File
+import qualified Propellor.Shim           as Shim
+import           Propellor.Types.CmdLine
+import           Propellor.Types.Docker
+import           Utility.Path
+import           Utility.SafeCommand
+import           Utility.ThreadScheduler
 
-import Control.Concurrent.Async hiding (link)
-import System.Posix.Directory
-import System.Posix.Process
-import Prelude hiding (init)
-import Data.List hiding (init)
-import Data.List.Utils
-import qualified Data.Map as M
+import           Control.Concurrent.Async hiding (link)
+import           Data.List                hiding (init)
+import           Data.List.Utils
+import qualified Data.Map                 as M
+import           Prelude                  hiding (init)
+import           System.Posix.Directory
+import           System.Posix.Process
 
 installed :: Property NoInfo
-installed = Apt.installed ["docker.io"]
+installed = Apt.installed ["lxc-docker"]
 
 -- | Configures docker with an authentication file, so that images can be
 -- pushed to index.docker.io. Optional.
@@ -66,7 +66,7 @@ configured :: Property HasInfo
 configured = prop `requires` installed
   where
 	prop = withPrivData src anyContext $ \getcfg ->
-		property "docker configured" $ getcfg $ \cfg -> ensureProperty $ 
+		property "docker configured" $ getcfg $ \cfg -> ensureProperty $
 			"/root/.dockercfg" `File.hasContent` (lines cfg)
 	src = PrivDataSourceFileFromCommand DockerAuthentication
 		"/root/.dockercfg" "docker login"
@@ -97,7 +97,7 @@ container cn image = Container image (Host cn [] info)
 	info = dockerInfo mempty
 
 -- | Ensures that a docker container is set up and running.
--- 
+--
 -- The container has its own Properties which are handled by running
 -- propellor inside the container.
 --
@@ -148,7 +148,7 @@ propigateContainerInfo ctr@(Container _ h) p = propigateContainer ctr p'
 		mempty { _dockerContainers = M.singleton (hostName h) h }
 
 mkContainerInfo :: ContainerId -> Container -> ContainerInfo
-mkContainerInfo cid@(ContainerId hn _cn) (Container img h) = 
+mkContainerInfo cid@(ContainerId hn _cn) (Container img h) =
 	ContainerInfo img runparams
   where
 	runparams = map (\(DockerRunParam mkparam) -> mkparam hn)
@@ -192,7 +192,7 @@ tweaked = trivial $
 	cmdProperty "sh" ["-c", "sed -ri 's/^session\\s+required\\s+pam_loginuid.so$/session optional pam_loginuid.so/' /etc/pam.d/*"]
 	`describe` "tweaked for docker"
 
--- | Configures the kernel to respect docker memory limits. 
+-- | Configures the kernel to respect docker memory limits.
 --
 -- This assumes the system boots using grub 2. And that you don't need any
 -- other GRUB_CMDLINE_LINUX_DEFAULT settings.
@@ -200,7 +200,7 @@ tweaked = trivial $
 -- Only takes effect after reboot. (Not automated.)
 memoryLimited :: Property NoInfo
 memoryLimited = "/etc/default/grub" `File.containsLine` cfg
-	`describe` "docker memory limited" 
+	`describe` "docker memory limited"
 	`onChange` cmdProperty "update-grub" []
   where
 	cmdline = "cgroup_enable=memory swapaccount=1"
@@ -251,7 +251,7 @@ volumes_from :: ContainerName -> Property HasInfo
 volumes_from cn = genProp "volumes-from" $ \hn ->
 	fromContainerId (ContainerId hn cn)
 
--- | Work dir inside the container. 
+-- | Work dir inside the container.
 workdir :: String -> Property HasInfo
 workdir = runProp "workdir"
 
@@ -300,7 +300,7 @@ restartNever = runProp "restart" "no"
 
 -- | A container is identified by its name, and the host
 -- on which it's deployed.
-data ContainerId = ContainerId 
+data ContainerId = ContainerId
 	{ containerHostName :: HostName
 	, containerName :: ContainerName
 	}
@@ -393,7 +393,7 @@ runningContainer cid@(ContainerId hn cn) image runps = containerDesc cid $ prope
 		v <- a
 		case v of
 			Right Nothing -> do
-				threadDelaySeconds (Seconds 1)		
+				threadDelaySeconds (Seconds 1)
 				retry (n-1) a
 			_ -> return v
 
@@ -460,7 +460,7 @@ provisionContainer cid = containerDesc cid $ property "provisioned" $ liftIO $ d
 	r <- withHandle StdoutHandle createProcessSuccess p $
 		processChainOutput
 	when (r /= FailedChange) $
-		setProvisionedFlag cid 
+		setProvisionedFlag cid
 	return r
 
 toChain :: ContainerId -> CmdLine
@@ -497,9 +497,9 @@ containerStarted cname = property ("container " ++ cname ++ " is started") $
 						 ( return MadeChange , return FailedChange)
 
 stoppedContainer :: ContainerId -> Property NoInfo
-stoppedContainer cid = containerDesc cid $ property desc $ 
+stoppedContainer cid = containerDesc cid $ property desc $
 	ifM (liftIO $ elem cid <$> listContainers RunningContainers)
-		( liftIO cleanup `after` ensureProperty 
+		( liftIO cleanup `after` ensureProperty
 			(property desc $ liftIO $ toResult <$> stopContainer cid)
 		, return NoChange
 		)
@@ -527,7 +527,7 @@ inContainerProcess cid ps cmd = proc dockercmd ("exec" : ps ++ [fromContainerId 
 
 commitContainer :: ContainerId -> IO (Maybe Image)
 commitContainer cid = catchMaybeIO $
-	takeWhile (/= '\n') 
+	takeWhile (/= '\n')
 		<$> readProcess dockercmd ["commit", fromContainerId cid]
 
 data ContainerFilter = RunningContainers | AllContainers
@@ -535,7 +535,7 @@ data ContainerFilter = RunningContainers | AllContainers
 
 -- | Only lists propellor managed containers.
 listContainers :: ContainerFilter -> IO [ContainerId]
-listContainers status = 
+listContainers status =
 	catMaybes . map toContainerId . concat . map (split ",")
 		. catMaybes . map (lastMaybe . words) . lines
 		<$> readProcess dockercmd ps
