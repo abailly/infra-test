@@ -19,6 +19,8 @@ import qualified Propellor.Property.Sudo     as Sudo
 import qualified Propellor.Property.User     as User
 --import qualified Propellor.Property.Hostname as Hostname
 --import qualified Propellor.Property.Tor as Tor
+import qualified Capital.Property.Lending    as Lending
+import           Capital.Property.Locale
 import qualified Propellor.Property.Docker   as Docker
 import           Propellor.Property.Fig      as Fig
 import           Propellor.Property.Firewall as Firewall
@@ -54,9 +56,9 @@ hosts =
 				  , "\tIdentityFile \"/home/build/.ssh/id_rsa\""
 				  ]
 		  & Ssh.knownExternalHost "bitbucket.org" "build"
-		  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
+		  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com") -- TODO disable or have separate keys for production
 
-          & File.hasContent "/home/build/startnginx.sh" 
+          & File.hasContent "/home/build/startnginx.sh"
           ["#!/bin/sh"
           ,"#set -x"
           ,"#set -e"
@@ -76,7 +78,7 @@ hosts =
           ,"    cd /home/build/nginxconf && git pull origin master"
           ,"  else "
           ,"    cd /home/build && git clone capital-match nginxconf"
-          ,"  fi","  docker run -d --cidfile=/home/build/.nginx.cid -p 80:80 -p 443:443 -v $NGINXCONF/nginx.conf:/etc/nginx/nginx.conf -v $NGINXCONF/sites-enabled:/etc/nginx/sites-enabled -v $NGINXCONF/certs:/etc/nginx/certs -v $NGINXCONF/logs:/var/log/nginx capital/nginx","fi"]
+          ,"  fi","  docker run -d --cidfile=/home/build/.nginx.cid -p 80:80 -p 443:443 -v $NGINXCONF/nginx.conf:/etc/nginx/nginx.conf -v $NGINXCONF/sites-enabled:/etc/nginx/sites-enabled -v $NGINXCONF/certs:/etc/nginx/certs -v $NGINXCONF/logs:/var/log/nginx capital/nginx"]
 		  & File.mode "/home/build/startnginx.sh" (combineModes  (ownerWriteMode:readModes ++ executeModes))
       & File.ownerGroup "/home/build/startnginx.sh" "build" "build"
 
@@ -351,44 +353,6 @@ mainhttpscert WithSSL =
 	]
 
 
-data Lang = En
-          | Fr
-
-instance Show Lang where
-  show En = "en"
-  show Fr = "fr"
-
-data Country = US
-             | FR
-             deriving (Show)
-
-
-data Encoding = UTF_8
-
-instance Show Encoding where
-  show UTF_8 = "UTF-8"
-
-data Locale = SimpleLocale Lang Country
-            | EncodingLocale Lang Country Encoding
-
-instance Show Locale where
-  show (SimpleLocale l c)     = show l ++ "_" ++ show c
-  show (EncodingLocale l c e) = show l ++ "_" ++ show c ++ "."++ show e
-
-en_us_UTF_8 :: Locale
-en_us_UTF_8 = EncodingLocale En US UTF_8
-
-setDefaultLocale :: Locale -> Property NoInfo
-setDefaultLocale locale = propertyList ("setting default locale to " ++ localeString) [
-  Apt.installed ["locales"]
-  , scriptProperty [ "locale-gen " ++ localeString ]
-  , "/etc/default/locale" `File.hasContent` [
-    "LC_ALL=" ++ localeString
-    ,"LANG=" ++  localeString
-    ]
-  ]
-  where
-    localeString = show locale
 
 installLatestDocker :: Property NoInfo
 installLatestDocker = propertyList ("install latest docker from official repositories")
