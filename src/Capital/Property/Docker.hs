@@ -1,11 +1,13 @@
 -- | To install latest docker from docker.com
 -- Ubuntu is quite far behind, so we don't want to use Propellors' default docker support which will
 -- replace a recent docker with ubuntu's one.
-module Capital.Property.Docker (installLatestDocker, dockerEnabledFor, dockerAuthTokenFor) where
+module Capital.Property.Docker (installLatestDocker, dockerEnabledFor, dockerAuthTokenFor, ContainerName) where
 import           Propellor
-import qualified Propellor.Property.Apt  as Apt
-import qualified Propellor.Property.File as File
-import qualified Propellor.Property.Sudo as Sudo
+import qualified Propellor.Property.Apt    as Apt
+import qualified Propellor.Property.Cmd    as Cmd
+import qualified Propellor.Property.Docker as PropDocker
+import qualified Propellor.Property.File   as File
+import qualified Propellor.Property.Sudo   as Sudo
 
 dockerEnabledFor :: String -> Property NoInfo
 dockerEnabledFor user =  Sudo.binaryEnabledFor "/usr/bin/docker" user
@@ -38,3 +40,10 @@ installLatestDocker = propertyList ("install latest docker from official reposit
   , Apt.installed [ "lxc-docker" ]
   ]
 
+hasDataContainer :: PropDocker.ContainerName -> Property NoInfo
+hasDataContainer name =
+  case containerExists of
+    MadeChange -> return MadeChange
+    FailedChange -> createContainerNamed name
+  where containerExists = Cmd.cmdProperty "docker" ["ps -a | grep ", name]
+        createContainerNamed name = Cmd.cmdProperty "docker" ["create","--name=cm-data --volume=/data ubuntu:trusty echo data container for capitalmatch app"]
