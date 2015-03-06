@@ -22,8 +22,7 @@ fixDigitalOceanIpV6  :: Property NoInfo
 fixDigitalOceanIpV6 = File.containsLine "/etc/gai.conf" "precedence ::ffff:0:0/96 100"
 
 lendingHost :: Property HasInfo
-lendingHost = propertyList "creating lending.capital-match.com configuration" $ do
-  props
+lendingHost = propertyList "creating lending.capital-match.com configuration" $ props
     & fixDigitalOceanIpV6
     & setDefaultLocale en_us_UTF_8
     & firewallHttpsDockerSsh
@@ -37,16 +36,16 @@ lendingHost = propertyList "creating lending.capital-match.com configuration" $ 
     & (certPath <> "ssl-unified.crt") `File.mode` combineModes [ownerWriteMode, ownerReadMode]
     & installLatestDocker
     & User.accountFor "build"
-      & User.hasGroup "build" "docker"
-      & Sudo.binaryEnabledFor "/usr/bin/docker" "build"
-    	  & Ssh.knownExternalHost "bitbucket.org" "build"
-    	  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com") -- TODO disable or have separate keys for production
-      & dockerAuthTokenFor "build"
-      & File.dirExists nginxSitesPath
-      & fileHasContentsFrom "lending/server" (nginxSitesPath <> "server")
-      & fileHasContentsFrom "lending/startnginx.sh" (buildHome <> "startnginx.sh")
-   where
+    & User.hasGroup "build" "docker"
+    & Sudo.binaryEnabledFor "/usr/bin/docker" "build"
+    & Ssh.knownExternalHost "bitbucket.org" "build"
+    & Ssh.authorizedKeys "build" (Context "beta.capital-match.com") -- TODO disable or have separate keys for production
+    & dockerAuthTokenFor "build"
+    & File.dirExists nginxSitesPath
+    & fileHasContentsFrom "lending/server" (nginxSitesPath <> "server")
+    & fileHasContentsFrom "lending/startnginx.sh" (buildHome <> "startnginx.sh")
 
+  where
      buildHome = "/home/build/"
      nginxSitesPath = buildHome <> "nginxconf/sites-enabled"
      certPath = "/etc/nginx/certs/"
