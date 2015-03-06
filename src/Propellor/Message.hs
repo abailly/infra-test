@@ -2,23 +2,24 @@
 
 module Propellor.Message where
 
-import System.Console.ANSI
-import System.IO
-import System.Log.Logger
-import System.Log.Formatter
-import System.Log.Handler (setFormatter, LogHandler)
-import System.Log.Handler.Simple
-import "mtl" Control.Monad.Reader
-import Data.Maybe
-import Control.Applicative
-import System.Directory
-import Control.Monad.IfElse
+import           Control.Applicative
+import           Control.Monad.IfElse
+import           "mtl" Control.Monad.Reader
+import           Data.Maybe
+import           System.Console.ANSI
+import           System.Directory
+import           System.IO
+import           System.Log.Formatter
+import           System.Log.Handler        (setFormatter)
 
-import Propellor.Types
-import Utility.Monad
-import Utility.Env
-import Utility.Process
-import Utility.Exception
+import           System.Log.Handler.Simple
+import           System.Log.Logger
+
+import           Propellor.Types
+import           Utility.Env
+import           Utility.Exception
+import           Utility.Monad
+import           Utility.Process
 
 data MessageHandle
 	= ConsoleMessageHandle
@@ -122,5 +123,5 @@ enableDebugMode = do
 	f <- setFormatter
 		<$> streamHandler stderr DEBUG
 		<*> pure (simpleLogFormatter "[$time] $msg")
-	updateGlobalLogger rootLoggerName $ 
+	updateGlobalLogger rootLoggerName $
 		setLevel DEBUG .  setHandlers [f]

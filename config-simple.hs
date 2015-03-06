@@ -7,25 +7,26 @@ import           Propellor.CmdLine
 import           System.Posix.Files
 import           Utility.FileMode
 
-import qualified Propellor.Property.Apache   as Apache
-import qualified Propellor.Property.Apt      as Apt
-import qualified Propellor.Property.Cabal    as Cabal
-import qualified Propellor.Property.File     as File
+import qualified Propellor.Property.Apache as Apache
+import qualified Propellor.Property.Apt    as Apt
+import qualified Propellor.Property.Cabal  as Cabal
+import qualified Propellor.Property.File   as File
 -- import qualified Propellor.Property.Network as Network
 --import qualified Propellor.Property.Cron     as Cron
-import qualified Propellor.Property.Group    as Group
-import qualified Propellor.Property.Ssh      as Ssh
-import qualified Propellor.Property.Sudo     as Sudo
-import qualified Propellor.Property.User     as User
+import qualified Propellor.Property.Group  as Group
+import qualified Propellor.Property.Ssh    as Ssh
+import qualified Propellor.Property.Sudo   as Sudo
+import qualified Propellor.Property.User   as User
 --import qualified Propellor.Property.Hostname as Hostname
 --import qualified Propellor.Property.Tor as Tor
 import           Capital.Property.Docker
-import qualified Capital.Property.Lending    as Lending
+import           Capital.Property.Firewall (firewallHttpsDockerSsh)
+import qualified Capital.Property.Lending  as Lending
 import           Capital.Property.Locale
-import qualified Propellor.Property.Docker   as Docker
-import           Propellor.Property.Fig      as Fig
-import           Propellor.Property.Firewall as Firewall
-import qualified Propellor.Property.Git      as Git
+import qualified Propellor.Property.Docker as Docker
+import           Propellor.Property.Fig    as Fig
+import qualified Propellor.Property.Git    as Git
+
 
 main :: IO ()
 main = defaultMain hosts
@@ -109,17 +110,9 @@ hosts =
 		  & Ssh.knownExternalHost "bitbucket.org" "admin"
 		  -- fig
 		  & Fig.installed
-          & Firewall.installed
-          & Firewall.rule INPUT ACCEPT (Ctstate [ESTABLISHED,RELATED])
-          & Firewall.rule INPUT ACCEPT (IFace "lo")
-          & Firewall.rule INPUT ACCEPT (IFace "docker0")
-          & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 22)
-          & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 80)
-          & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 443)
-          & Firewall.rule INPUT DROP   Everything
+          & firewallHttpsDockerSsh
 
-
-		  -- TODO Change hosting -> DO
+		-- TODO Change hosting -> DO
         , host "92.243.3.60"
           & Git.installed
           & setDefaultLocale en_us_UTF_8
@@ -155,14 +148,7 @@ hosts =
           & Git.installed
           & User.accountFor "admin"
           & Sudo.binaryEnabledFor "/usr/bin/docker" "admin"
-          & Firewall.installed
-          & Firewall.rule INPUT ACCEPT (Ctstate [ESTABLISHED,RELATED])
-          & Firewall.rule INPUT ACCEPT (IFace "lo")
-          & Firewall.rule INPUT ACCEPT (IFace "docker0")
-          & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 22)
-          & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 80)
-          & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 443)
-          & Firewall.rule INPUT DROP   Everything
+          & firewallHttpsDockerSsh
 
 	--, host "foo.example.com" = ...
 	]
