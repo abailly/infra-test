@@ -3,17 +3,15 @@ module Capital.Property.Lending (lendingHost) where
 import           Capital.Property.Docker     (installLatestDocker)
 
 import           Propellor
-import           Propellor.CmdLine
 -- import Propellor.Property.Scheduled
 import           System.Posix.Files
 import           Utility.FileMode
 
-import qualified Propellor.Property.Apache   as Apache
-import qualified Propellor.Property.Apt      as Apt
+
 import qualified Propellor.Property.File     as File
 -- import qualified Propellor.Property.Network as Network
 --import qualified Propellor.Property.Cron     as Cron
-import qualified Propellor.Property.Group    as Group
+
 import qualified Propellor.Property.Ssh      as Ssh
 import qualified Propellor.Property.Sudo     as Sudo
 import qualified Propellor.Property.User     as User
@@ -21,7 +19,6 @@ import qualified Propellor.Property.User     as User
 --import qualified Propellor.Property.Tor as Tor
 import           Capital.Property.Docker
 import           Capital.Property.Locale
-import qualified Propellor.Property.Docker   as Docker
 import           Propellor.Property.Firewall as Firewall
 
 firewallHttpsDockerSsh :: Property HasInfo
@@ -36,7 +33,7 @@ firewallHttpsDockerSsh = propertyList "creating firewall for ssh, http(s) and do
         & Firewall.rule INPUT DROP   Everything
 
 lendingHost :: Property HasInfo
-lendingHost = propertyList "creating devserver configuration" $ props
+lendingHost = propertyList "creating lending.capital-match.com configuration" $ props
         -- ipv4 takes precedence over ipv6 on ipv6 enabled host
 	-- https://www.digitalocean.com/community/questions/how-to-disable-ubuntu-14-04-ipv6
 	& File.containsLine "/etc/gai.conf" "precedence ::ffff:0:0/96 100"
@@ -56,18 +53,10 @@ lendingHost = propertyList "creating devserver configuration" $ props
         & User.accountFor "build"
           & User.hasGroup "build" "docker"
 	  & Sudo.binaryEnabledFor "/usr/bin/docker" "build"
- 		& Ssh.keyImported SshRsa "build" (Context "beta.capital-match.com")
-		  & File.containsLines "/home/build/.ssh/config"
-		  [ "Host bitbucket.org"
-				  , "\tUser git"
-				  , "\tHostname bitbucket.org"
-				  , "\tPreferredAuthentications publickey"
-				  , "\tIdentityFile \"/home/build/.ssh/id_rsa\""
-				  ]
 		  & Ssh.knownExternalHost "bitbucket.org" "build"
 		  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com") -- TODO disable or have separate keys for production
 
-          & File.hasContent "/home/build/startnginx.sh"
+        {-  & File.hasContent "/home/build/startnginx.sh"
           ["#!/bin/sh"
           ,"#set -x"
           ,"#set -e"
@@ -89,6 +78,6 @@ lendingHost = propertyList "creating devserver configuration" $ props
           ,"    cd /home/build && git clone capital-match nginxconf"
           ,"  fi","  docker run -d --cidfile=/home/build/.nginx.cid -p 80:80 -p 443:443 -v $NGINXCONF/nginx.conf:/etc/nginx/nginx.conf -v $NGINXCONF/sites-enabled:/etc/nginx/sites-enabled -v $NGINXCONF/certs:/etc/nginx/certs -v $NGINXCONF/logs:/var/log/nginx capital/nginx"]
 		  & File.mode "/home/build/startnginx.sh" (combineModes  (ownerWriteMode:readModes ++ executeModes))
-      & File.ownerGroup "/home/build/startnginx.sh" "build" "build"
+      & File.ownerGroup "/home/build/startnginx.sh" "build" "build" -}
 
 
