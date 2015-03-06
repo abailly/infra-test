@@ -9,7 +9,7 @@ firewallHttpsDockerSsh = propertyList "creating firewall for ssh, http(s) and do
         & Firewall.rule INPUT ACCEPT (Ctstate [ESTABLISHED,RELATED])
         & Firewall.rule INPUT ACCEPT (IFace "lo")
         & Firewall.rule INPUT ACCEPT (IFace "docker0")
-        & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 22)
+        & sshRule
         & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 80)
         & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 443)
         & Firewall.rule INPUT DROP   Everything
@@ -20,12 +20,11 @@ openDevHttpPorts = propertyList "creating firewall rules for dev ports " $ props
         & Firewall.rule INPUT ACCEPT (Ctstate [ESTABLISHED,RELATED])
         & Firewall.rule INPUT ACCEPT (IFace "lo")
         & Firewall.rule INPUT ACCEPT (IFace "docker0")
-        & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 22)
+        & sshRule
         & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 80)
         & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 443)
-        & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 8085)
-        & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 8095)
-        & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 8080)
-        & Firewall.rule INPUT ACCEPT (Proto TCP :- Port 8081)
-
+        & Firewall.rule INPUT ACCEPT (Proto TCP :- PortRange (8080,8099))
         & Firewall.rule INPUT DROP   Everything
+
+sshRule :: Property NoInfo
+sshRule = Firewall.rule INPUT ACCEPT (Proto TCP :- Port 22)
