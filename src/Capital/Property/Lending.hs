@@ -34,7 +34,6 @@ lendingHost = propertyList "creating lending.capital-match.com configuration" $ 
 
     & writeCertificateChain "nginx-public-cert" "lending.capital-match.com"
     & (certPath <> "ssl-unified.crt") `File.mode` combineModes [ownerWriteMode, ownerReadMode]
-    & installLatestDocker
     & User.accountFor "build"
     & User.hasGroup "build" "docker"
     & Sudo.binaryEnabledFor "/usr/bin/docker" "build"
@@ -60,7 +59,8 @@ lendingHost = propertyList "creating lending.capital-match.com configuration" $ 
 
 
 fileHasContentsFrom :: FilePath -> FilePath -> Property NoInfo
-fileHasContentsFrom source target = property  ("setting file " <> target <> " to " <> source ) $ liftIO $ (copyFile source target >> return MadeChange ) `catchIO` const (return FailedChange)
+fileHasContentsFrom source target = property  ("setting file " <> target <> " to " <> source ) $ liftIO $ (copyFile (sourcePath <> source) target >> return MadeChange ) `catchIO` const (return FailedChange)
+  where sourcePath = "pubdata/"
 
 {- put nginx file
       & File.ownerGroup "/home/build/startnginx.sh" "build" "build" -}
