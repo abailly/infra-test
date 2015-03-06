@@ -28,7 +28,7 @@ lendingHost = propertyList "creating lending.capital-match.com configuration" $ 
     & installLatestDocker
     & File.dirExists certPath
     & writeSslKey "nginx-private-key" "lending.capital-match.com"
-    & (certPath <> "ssl.key") `File.mode` combineModes [ownerWriteMode, ownerReadMode]
+    & restrictToOwner certPath "ssl.key"
 
     & writeCertificateChain "nginx-public-cert" "lending.capital-match.com"
     & (certPath <> "ssl-unified.crt") `File.mode` combineModes [ownerWriteMode, ownerReadMode]
@@ -40,10 +40,10 @@ lendingHost = propertyList "creating lending.capital-match.com configuration" $ 
     	  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com") -- TODO disable or have separate keys for production
    where
      certPath = "/etc/nginx/certs/"
-     writeToCertPath fileName tok =
-       (writeFile (certPath <> fileName) tok >> return MadeChange) `catchIO` const (return FailedChange)
-     writeSslKey privFile context = writePrivFile privFile context "setting nginx private key" "ssl.key"
-     writeCertificateChain privFile context = writePrivFile privFile context "setting nginx certificate chain" "ssl-unified.crt"
+     restrictToOwner path fileName = (path <> fileName) `File.mode` combineModes [ownerWriteMode, ownerReadMode]
+     writeToCertPath fileName tok = (writeFile (certPath <> fileName) tok >> return MadeChange) `catchIO` const (return FailedChange)
+     writeSslKey privFile context = writePrivFile privFile context "ssl.key" "setting nginx private key"
+     writeCertificateChain privFile context = writePrivFile privFile context "ssl-unified.crt" "setting nginx certificate chain"
      writePrivFile privFile context destination comment =
        withPrivData (PrivFile privFile) (Context context)
          (\ getdata -> property comment
