@@ -44,7 +44,7 @@ lendingHost = propertyList "creating lending.capital-match.com configuration" $ 
     & File.dirExists nginxSitesPath
     & fileHasContentsFrom "lending/server" (nginxSitesPath </> "server")
     & fileHasContentsFrom "lending/startnginx.sh" (buildHome </> "startnginx.sh")
-    & Cmd.userScriptProperty deployer ["./startninx.sh"]
+    & Cmd.userScriptProperty deployer ["./startnginx.sh"]
 
   where
      deployer = "build"
