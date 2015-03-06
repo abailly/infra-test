@@ -1,4 +1,4 @@
-module Capital.Property.Firewall (firewallHttpsDockerSsh) where
+module Capital.Property.Firewall (firewallHttpsDockerSsh, openDevHttpPorts) where
 
 import           Propellor
 import           Propellor.Property.Firewall as Firewall

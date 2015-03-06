@@ -20,7 +20,8 @@ import qualified Propellor.Property.User   as User
 --import qualified Propellor.Property.Hostname as Hostname
 --import qualified Propellor.Property.Tor as Tor
 import           Capital.Property.Docker
-import           Capital.Property.Firewall (firewallHttpsDockerSsh)
+import           Capital.Property.Firewall (firewallHttpsDockerSsh,
+                                            openDevHttpPorts)
 import qualified Capital.Property.Lending  as Lending
 import           Capital.Property.Locale
 import qualified Propellor.Property.Docker as Docker
@@ -179,17 +180,10 @@ devhost = propertyList "creating devserver configuration" $ props
 		  & Git.cloned "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/app" (Just "master")
 		  & installEmacs4Haskell "build"
 		  & configureEmacs "build"
+
 		  -- configure docker authent to pull images from dockerhub
-		  & withPrivData (PrivFile "docker-auth-token") (Context "dev")
-		     (\ getdata -> property "docker auth configured"
-		  								   $ getdata $ \ tok -> liftIO $ (writeFile "/home/build/.ssh/.dockercfg" (unlines
-		  										  [ "{"
-		  										  , "\"https://index.docker.io/v1/\":"
-		  										  , "   {\"auth\":\""  ++ tok ++ "\""
-		  										  , ", \"email\":\"dev@capital-match.com\"}"
-		                                          , "}"
-		                                          ]) >> return MadeChange) `catchIO` const (return FailedChange))
-                  -- replace with .dockercfg from willem (to put in privdata) and 'docker pull mostalive/etet-withemacs' docker re-tagging manual, until we have capital-match repos on dockerhub
+		  & dockerAuthTokenFor "build"
+                  & openDevHttpPorts
 		  & userScriptProperty "build" [ "cd app", "./build.sh" ]
 
 -- | Configures a hakyll-generated site as a vhost served by apache
