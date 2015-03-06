@@ -10,6 +10,7 @@ import           Capital.Property.Docker   (dockerAuthTokenFor,
                                             installLatestDocker)
 import           Capital.Property.Firewall (firewallHttpsDockerSsh)
 import           Capital.Property.Locale
+import qualified Propellor.Property.Cmd    as Cmd
 import qualified Propellor.Property.File   as File
 import qualified Propellor.Property.Ssh    as Ssh
 import qualified Propellor.Property.Sudo   as Sudo
@@ -43,8 +44,10 @@ lendingHost = propertyList "creating lending.capital-match.com configuration" $ 
     & File.dirExists nginxSitesPath
     & fileHasContentsFrom "lending/server" (nginxSitesPath </> "server")
     & fileHasContentsFrom "lending/startnginx.sh" (buildHome </> "startnginx.sh")
+    & Cmd.userScriptProperty deployer ["./startninx.sh"]
 
   where
+     deployer = "build"
      buildHome = "/home/build/"
      nginxSitesPath = buildHome <> "nginxconf/sites-enabled"
      certPath = "/etc/nginx/certs/"
