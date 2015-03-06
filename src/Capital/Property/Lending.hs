@@ -1,6 +1,7 @@
 module Capital.Property.Lending (lendingHost) where
 
 import           Propellor
+
 import           System.Posix.Files
 import           Utility.FileMode
 
@@ -28,6 +29,7 @@ lendingHost = propertyList "creating lending.capital-match.com configuration" $ 
     & firewallHttpsDockerSsh
     & installLatestDocker
     & File.dirExists certPath
+
     & writeSslKey "nginx-private-key" "lending.capital-match.com"
     & restrictToOwner certPath "ssl.key"
 
@@ -40,7 +42,12 @@ lendingHost = propertyList "creating lending.capital-match.com configuration" $ 
     	  & Ssh.knownExternalHost "bitbucket.org" "build"
     	  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com") -- TODO disable or have separate keys for production
       & dockerAuthTokenFor "build"
+      & File.dirExists nginxSitesPath
+      & fileHasContentsFrom "lending/server" (nginxSitesPath <> "server")
    where
+
+     buildHome = "/home/build/"
+     nginxSitesPath = buildHome <> "nginxconf/sites-enabled"
      certPath = "/etc/nginx/certs/"
      restrictToOwner path fileName = (path <> fileName) `File.mode` combineModes [ownerWriteMode, ownerReadMode]
      writeToCertPath fileName tok = (writeFile (certPath <> fileName) tok >> return MadeChange) `catchIO` const (return FailedChange)
@@ -52,6 +59,8 @@ lendingHost = propertyList "creating lending.capital-match.com configuration" $ 
 			$ getdata $ \ tok -> liftIO $ writeToCertPath destination tok)
 
 
+fileHasContentsFrom :: FilePath -> FilePath -> Property NoInfo
+fileHasContentsFrom source target = property  ("setting file " <> target <> " to " <> source ) $ liftIO $ (copyFile source target >> return MadeChange ) `catchIO` const (return FailedChange)
 
 {- put nginx file
       & File.ownerGroup "/home/build/startnginx.sh" "build" "build" -}
