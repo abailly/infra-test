@@ -5,7 +5,8 @@ import           System.Posix.Files
 import           Utility.FileMode
 
 
-import           Capital.Property.Docker   (installLatestDocker)
+import           Capital.Property.Docker   (dockerAuthTokenFor,
+                                            installLatestDocker)
 import           Capital.Property.Firewall (firewallHttpsDockerSsh)
 import           Capital.Property.Locale
 import qualified Propellor.Property.File   as File
@@ -38,6 +39,7 @@ lendingHost = propertyList "creating lending.capital-match.com configuration" $ 
       & Sudo.binaryEnabledFor "/usr/bin/docker" "build"
     	  & Ssh.knownExternalHost "bitbucket.org" "build"
     	  & Ssh.authorizedKeys "build" (Context "beta.capital-match.com") -- TODO disable or have separate keys for production
+      & dockerAuthTokenFor "build"
    where
      certPath = "/etc/nginx/certs/"
      restrictToOwner path fileName = (path <> fileName) `File.mode` combineModes [ownerWriteMode, ownerReadMode]
