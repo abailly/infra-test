@@ -3,28 +3,24 @@ module Propellor.CmdLine (
 	processCmdLine,
 ) where
 
-import System.Environment (getArgs)
-import Data.List
-import System.Exit
-import System.Log.Logger
-import System.Log.Formatter
-import System.Log.Handler (setFormatter)
-import System.Log.Handler.Simple
-import System.PosixCompat
+import           Data.List
 import qualified Network.BSD
+import           System.Environment        (getArgs)
+import           System.Exit
+import           System.PosixCompat
 
-import Propellor
-import Propellor.Gpg
-import Propellor.Git
-import Propellor.Spin
-import Propellor.Types.CmdLine
-import qualified Propellor.Property.Docker as Docker
+import           Propellor
+import           Propellor.Git
+import           Propellor.Gpg
 import qualified Propellor.Property.Chroot as Chroot
-import qualified Propellor.Shim as Shim
-import Utility.SafeCommand
+import qualified Propellor.Property.Docker as Docker
+import qualified Propellor.Shim            as Shim
+import           Propellor.Spin
+import           Propellor.Types.CmdLine
+import           Utility.SafeCommand
 
 usage :: Handle -> IO ()
-usage h = hPutStrLn h $ unlines 
+usage h = hPutStrLn h $ unlines
 	[ "Usage:"
 	, "  propellor"
 	, "  propellor hostname"
@@ -46,8 +42,8 @@ processCmdLine :: IO CmdLine
 processCmdLine = go =<< getArgs
   where
 	go ("--spin":ps) = case reverse ps of
-		(r:"--via":hs) -> Spin 
-			<$> mapM hostname (reverse hs) 
+		(r:"--via":hs) -> Spin
+			<$> mapM hostname (reverse hs)
 			<*> pure (Just r)
 		_ -> Spin <$> mapM hostname ps <*> pure Nothing
 	go ("--add-key":k:[]) = return $ AddKey k
@@ -56,7 +52,7 @@ processCmdLine = go =<< getArgs
 	go ("--edit":f:c:[]) = withprivfield f c Edit
 	go ("--list-fields":[]) = return ListFields
 	go ("--merge":[]) = return Merge
-	go ("--help":_) = do	
+	go ("--help":_) = do
 		usage stdout
 		exitFailure
 	go ("--boot":_:[]) = return $ Update Nothing -- for back-compat
@@ -120,7 +116,7 @@ defaultMain hostlist = do
 
 	withhost :: HostName -> (Host -> IO ()) -> IO ()
 	withhost hn a = maybe (unknownhost hn hostlist) a (findHost hostlist hn)
-	
+
 	onlyprocess = onlyProcess (localdir </> ".lock")
 
 unknownhost :: HostName -> [Host] -> IO a
@@ -141,7 +137,7 @@ buildFirst cmdline next = ifM (doesFileExist "Makefile")
 				if newtime == oldtime
 					then next
 					else void $ boolSystem "./propellor" [Param "--continue", Param (show cmdline)]
-			, errorMessage "Propellor build failed!" 
+			, errorMessage "Propellor build failed!"
 			)
 	, next
 	)
@@ -161,7 +157,7 @@ updateFirst' :: CmdLine -> IO () -> IO ()
 updateFirst' cmdline next = ifM fetchOrigin
 	( ifM (actionMessage "Propellor build" $ boolSystem "make" [Param "build"])
 		( void $ boolSystem "./propellor" [Param "--continue", Param (show cmdline)]
-			, errorMessage "Propellor build failed!" 
+			, errorMessage "Propellor build failed!"
 		)
 	, next
 	)
