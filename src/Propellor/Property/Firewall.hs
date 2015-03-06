@@ -3,27 +3,34 @@
 -- Copyright 2014 Arnaud Bailly <arnaud.oqube@gmail.com>
 -- License: BSD-2-Clause
 module Propellor.Property.Firewall (
-	rule,
-	installed,
-	Chain(..),
-	Target(..),
-	Proto(..),
-	Rules(..),
-	Port,
-	ConnectionState(..)
-) where
+  rule,
+  installed,
+  dropEverything,
+  Chain(..),
+  Target(..),
+  Proto(..),
+  Rules(..),
+  Port,
+  ConnectionState(..)
+  ) where
 
-import Data.Monoid
-import Data.Char
-import Data.List
+import           Data.Char
+import           Data.List
+import           Data.Monoid
 
-import Propellor
-import Utility.SafeCommand
-import qualified Propellor.Property.Apt as Apt
+import           Propellor
+import qualified Propellor.Property.Apt     as Apt
 import qualified Propellor.Property.Network as Network
+import           Utility.SafeCommand
 
 installed :: Property NoInfo
 installed = Apt.installed ["iptables"]
+
+-- |A basic rule to drop every input packet
+--
+-- This should be used as last clause for a bunch of rules, like:
+dropEverything :: Property NoInfo
+dropEverything =  rule INPUT DROP  Everything
 
 rule :: Chain -> Target -> Rules -> Property NoInfo
 rule c t rs = property ("firewall rule: " <> show r) addIpTable
@@ -56,11 +63,10 @@ toIpTableArg (Ctstate states)  = [ "-m"
 								 ]
 toIpTableArg (r :- r')         = toIpTableArg r <> toIpTableArg r'
 
-data Rule = Rule
-	{ ruleChain :: Chain
-	, ruleTarget :: Target
-	, ruleRules :: Rules
-	} deriving (Eq, Show, Read)
+data Rule = Rule { ruleChain  :: Chain
+				 , ruleTarget :: Target
+				 , ruleRules  :: Rules
+				 } deriving (Eq, Show, Read)
 
 data Chain = INPUT | OUTPUT | FORWARD
 	deriving (Eq,Show,Read)
