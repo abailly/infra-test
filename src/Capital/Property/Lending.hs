@@ -44,6 +44,7 @@ lendingHost = propertyList "creating lending.capital-match.com configuration" $ 
       & dockerAuthTokenFor "build"
       & File.dirExists nginxSitesPath
       & fileHasContentsFrom "lending/server" (nginxSitesPath <> "server")
+      & fileHasContentsFrom "lending/startnginx.sh" (buildHome <> "startnginx.sh")
    where
 
      buildHome = "/home/build/"
