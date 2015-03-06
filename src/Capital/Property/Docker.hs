@@ -15,7 +15,7 @@ dockerAuthTokenFor :: String -> Property HasInfo
 dockerAuthTokenFor _ =
   withPrivData (PrivFile "docker-auth-token") (Context "dev")
 	(\ getdata -> property "docker auth configured"
-	  		$ getdata $ \ tok -> liftIO $ (writeFile "/home/build/.ssh/.dockercfg" (unlines
+	  		$ getdata $ \ tok -> liftIO $ (writeFile "/home/build/.dockercfg" (unlines
         [ "{"
 	, "\"https://index.docker.io/v1/\":"
 	, "   {\"auth\":\""  ++ tok ++ "\""
