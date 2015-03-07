@@ -6,7 +6,7 @@ if [ -f /home/build/.app.cid ]; then
     rm /home/build/.app.cid
 fi
 # run as build user
-docker run -d --cidfile=/home/build/.app.cid -p 8080:8080 capitalmatch/app:latest
+docker run -d --cidfile=/home/build/.app.cid --volumes-from=cm-data -p 8080:8080 capitalmatch/app:latest
 if [ -f /home/build/.nginx.cid ]; then
    docker kill $(cat /home/build/.nginx.cid)
    rm /home/build/.nginx.cid

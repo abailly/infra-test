@@ -58,4 +58,5 @@ hasDataContainer name = property "docker creates data-only container" $ liftIO $
   else
     case or $ map (`L.isInfixOf` name) (lines containers) of
       True  -> return MadeChange
-      False -> toResult <$> C.boolSystem "docker" (map C.Params ["create","--name=cm-data --volume=/data ubuntu:trusty echo data container for capitalmatch app"])
+      False -> toResult <$> C.boolSystem "docker" (map C.Params [ "create","--name=" <> name, " --volume=/data", "ubuntu:trusty"
+                                                                , "echo", "'data container for capitalmatch app'"])

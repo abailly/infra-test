@@ -7,6 +7,7 @@ import           Utility.FileMode
 
 
 import           Capital.Property.Docker   (dockerAuthTokenFor,
+                                            hasDataContainer,
                                             installLatestDocker)
 import           Capital.Property.Firewall (firewallHttpsDockerSsh)
 import           Capital.Property.Locale
@@ -44,6 +45,7 @@ lendingHost = propertyList "creating lending.capital-match.com configuration" $ 
     & File.dirExists nginxSitesPath
     & fileHasContentsFrom "lending/server" (nginxSitesPath </> "server")
     & fileHasContentsFrom "lending/startnginx.sh" (buildHome </> "startnginx.sh")
+    & hasDataContainer "cm-data"
     & Cmd.userScriptProperty deployer ["./startnginx.sh"]
 
   where
