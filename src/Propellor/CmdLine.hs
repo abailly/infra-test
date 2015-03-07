@@ -10,12 +10,16 @@ import           System.Exit
 import           System.PosixCompat
 
 import           Propellor
+import           Propellor.Bootstrap
 import           Propellor.Git
 import           Propellor.Gpg
 import qualified Propellor.Property.Chroot as Chroot
 import qualified Propellor.Property.Docker as Docker
+import qualified Propellor.Property.Docker as Docker
 import qualified Propellor.Shim            as Shim
 import           Propellor.Spin
+import           Propellor.Spin
+import           Propellor.Types.CmdLine
 import           Propellor.Types.CmdLine
 import           Utility.SafeCommand
 
@@ -31,6 +35,7 @@ usage h = hPutStrLn h $ unlines
 	, "  propellor --edit field context"
 	, "  propellor --list-fields"
 	, "  propellor --merge"
+	, "  propellor --build"
 	]
 
 usageError :: [String] -> IO a
@@ -128,19 +133,16 @@ unknownhost h hosts = errorMessage $ unlines
 	]
 
 buildFirst :: CmdLine -> IO () -> IO ()
-buildFirst cmdline next = ifM (doesFileExist "Makefile")
-	( do
-		oldtime <- getmtime
-		ifM (actionMessage "Propellor build" $ boolSystem "make" [Param "build"])
-			( do
-				newtime <- getmtime
-				if newtime == oldtime
-					then next
-					else void $ boolSystem "./propellor" [Param "--continue", Param (show cmdline)]
-			, errorMessage "Propellor build failed!"
-			)
-	, next
-	)
+buildFirst cmdline next = do
+	oldtime <- getmtime
+	buildPropellor
+	newtime <- getmtime
+	if newtime == oldtime
+		then next
+		else void $ boolSystem "./propellor"
+			[ Param "--continue"
+			, Param (show cmdline)
+			]
   where
 	getmtime = catchMaybeIO $ getModificationTime "propellor"
 
@@ -155,10 +157,12 @@ updateFirst cmdline next = ifM hasOrigin (updateFirst' cmdline next, next)
 
 updateFirst' :: CmdLine -> IO () -> IO ()
 updateFirst' cmdline next = ifM fetchOrigin
-	( ifM (actionMessage "Propellor build" $ boolSystem "make" [Param "build"])
-		( void $ boolSystem "./propellor" [Param "--continue", Param (show cmdline)]
-			, errorMessage "Propellor build failed!"
-		)
+	( do
+		buildPropellor
+		void $ boolSystem "./propellor"
+			[ Param "--continue"
+			, Param (show cmdline)
+			]
 	, next
 	)
 
