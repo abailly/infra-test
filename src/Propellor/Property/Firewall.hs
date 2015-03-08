@@ -36,7 +36,7 @@ dropEverything =  rule INPUT DROP  Everything
 --
 -- Useful at start of configuration of firewall rules
 flush :: Chain -> Property NoInfo
-flush chain = property ( "flushing all rules for chain " <> show chain) $ liftIO $ do
+flush chain = property ( "flushing all rules for chain " <> show chain) $ liftIO $
   toResult <$> boolSystem "iptables" (map Param ["-F", show chain])
 
 rule :: Chain -> Target -> Rules -> Property NoInfo
@@ -45,17 +45,16 @@ rule c t rs = property ("firewall rule: " <> show r) addIpTable
 	r = Rule c t rs
 	addIpTable = liftIO $ do
 		let args = toIpTable r
-		exist <- boolSystem "iptables" (chk args)
+		(_, exist) <- processTranscript "iptables" ("-C" : toCommand args) Nothing
 		if exist
-			then return NoChange
-			else toResult <$> boolSystem "iptables" (add args)
-	add params = (Param "-A") : params
-	chk params = (Param "-C") : params
+                  then return NoChange
+                  else toResult <$> boolSystem "iptables" (add args)
+	add params = Param "-A" : params
 
 toIpTable :: Rule -> [CommandParam]
 toIpTable r =  map Param $
-	(show $ ruleChain r) :
-	(toIpTableArg (ruleRules r)) ++ [ "-j" , show $ ruleTarget r ]
+	show (ruleChain r) :
+	toIpTableArg (ruleRules r) ++ [ "-j" , show $ ruleTarget r ]
 
 toIpTableArg :: Rules -> [String]
 toIpTableArg Everything        = []
@@ -64,16 +63,16 @@ toIpTableArg (Port port)       = ["--dport", show port]
 toIpTableArg (PortRange (f,t)) = ["--dport", show f ++ ":" ++ show t]
 toIpTableArg (IFace iface)     = ["-i", iface]
 toIpTableArg (Ctstate states)  = [ "-m"
-								 , "conntrack"
-								 , "--ctstate"
-								 , concat $ intersperse "," (map show states)
-								 ]
+                                 , "conntrack"
+                                 , "--ctstate"
+                                 , intercalate "," (map show states)
+                                 ]
 toIpTableArg (r :- r')         = toIpTableArg r <> toIpTableArg r'
 
-data Rule = Rule { ruleChain                  :: Chain
-				 , ruleTarget :: Target
-				 , ruleRules  :: Rules
-				 } deriving (Eq, Show, Read)
+data Rule = Rule { ruleChain  :: Chain
+                 , ruleTarget :: Target
+                 , ruleRules  :: Rules
+                 } deriving (Eq, Show, Read)
 
 data Chain = INPUT | OUTPUT | FORWARD
 	deriving (Eq,Show,Read)

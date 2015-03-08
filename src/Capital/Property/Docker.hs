@@ -53,10 +53,9 @@ installLatestDocker = propertyList "install latest docker from official reposito
 hasDataContainer :: PropDocker.ContainerName -> Property NoInfo
 hasDataContainer name = property "docker creates data-only container" $ liftIO $ do
   (containers,res) <- processTranscript "docker" ["ps", "-a"] Nothing
-  if not res then
-    return FailedChange
-  else
-    case or $ map (`L.isInfixOf` name) (lines containers) of
-      True  -> return MadeChange
-      False -> toResult <$> C.boolSystem "docker" (map C.Params [ "create","--name=" <> name, " --volume=/data", "ubuntu:trusty"
-                                                                , "echo", "'data container for capitalmatch app'"])
+  if not res
+    then  return FailedChange
+    else if any (name `L.isInfixOf`) (lines containers)
+            then return MadeChange
+            else toResult <$> C.boolSystem "docker" (map C.Params [ "create","--name=" <> name, " --volume=/data", "ubuntu:trusty"
+                                                                  , "echo", "'data container for capitalmatch app'"])
