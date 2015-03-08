@@ -18,6 +18,7 @@ openCommonPorts =  propertyList "open common operating ports for web" $ props
 
 firewallHttpsDockerSsh :: Property HasInfo
 firewallHttpsDockerSsh = propertyList "firewall accepts ssh, http(s) and docker" $ props
+                         & flush INPUT
                          & firewallPreamble
                          & openCommonPorts
                          & dropEverything

@@ -3,7 +3,7 @@
 -- Copyright 2014 Arnaud Bailly <arnaud.oqube@gmail.com>
 -- License: BSD-2-Clause
 module Propellor.Property.Firewall (
-  rule,
+  rule, flush,
   installed,
   dropEverything,
   Chain(..),
@@ -31,6 +31,13 @@ installed = Apt.installed ["iptables"]
 -- This should be used as last clause for a bunch of rules, like:
 dropEverything :: Property NoInfo
 dropEverything =  rule INPUT DROP  Everything
+
+-- |Drop all rules for given chain.
+--
+-- Useful at start of configuration of firewall rules
+flush :: Chain -> Property NoInfo
+flush chain = property ( "flushing all rules for chain " <> show chain) $ liftIO $ do
+  toResult <$> boolSystem "iptables" (map Param ["-F", show chain])
 
 rule :: Chain -> Target -> Rules -> Property NoInfo
 rule c t rs = property ("firewall rule: " <> show r) addIpTable
@@ -63,7 +70,7 @@ toIpTableArg (Ctstate states)  = [ "-m"
 								 ]
 toIpTableArg (r :- r')         = toIpTableArg r <> toIpTableArg r'
 
-data Rule = Rule { ruleChain  :: Chain
+data Rule = Rule { ruleChain                  :: Chain
 				 , ruleTarget :: Target
 				 , ruleRules  :: Rules
 				 } deriving (Eq, Show, Read)
