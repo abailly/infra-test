@@ -89,6 +89,7 @@ hosts =
           & devhost
           & installGhc783
           & installJava
+          & installLein
 
         , host "angel"
           & devhost
@@ -209,6 +210,13 @@ installGhc783 = scriptProperty [ "wget http://www.haskell.org/ghc/dist/7.8.3/ghc
                                , "make install"
                                ]
 
+-- this is too...
+installLein :: Property NoInfo
+installLein = scriptProperty [ "wget -O /usr/local/bin/lein https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein"
+                             , "chmod 0755 /usr/local/bin/lein"
+                             ]
+
+-- not speaking of this !
 installJava :: Property NoInfo
 installJava = scriptProperty [ "DEBIAN_FRONTEND=noninteractive apt-get install -y software-properties-common python-software-properties"
                              ,  "add-apt-repository -y ppa:webupd8team/java"
