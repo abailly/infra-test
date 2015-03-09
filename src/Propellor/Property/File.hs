@@ -15,8 +15,8 @@ f `hasContent` newcontent = fileProperty ("replace " ++ f)
 
 -- | Ensures a file has content that comes from pubdata
 -- the files permissions are probably the default for the user
-fileHasPubContent :: FilePath -> FilePath -> Property NoInfo
-fileHasPubContent source target = property  ("setting file " <> target <> " to " <> source ) $ liftIO $ (copyFile (sourcePath <> source) target >> return MadeChange ) `catchIO` const (return FailedChange)
+hasPubContent :: FilePath -> FilePath -> Property NoInfo
+hasPubContent source target = property  ("setting file " <> target <> " to " <> source ) $ liftIO $ (copyFile (sourcePath <> source) target >> return MadeChange ) `catchIO` const (return FailedChange)
   where sourcePath = "pubdata/"
 
 
