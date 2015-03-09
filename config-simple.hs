@@ -176,7 +176,7 @@ devhost = propertyList "creating devserver configuration" $ props
           , "\tPreferredAuthentications publickey"
           , "\tIdentityFile \"/home/build/.ssh/id_rsa\""
           ]
-          & File.containsLine "/home/build/.bash_profile" "alias git=g"
+          & File.containsLine "/home/build/.bash_profile" "alias g=git"
           & Git.configuredUser "build" "Igitur Ventures Ltd." "igitur@igitur.io"
           & Ssh.knownExternalHost "bitbucket.org" "build"
           & Ssh.authorizedKeys "build" (Context "dev")
