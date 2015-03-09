@@ -202,13 +202,15 @@ standardHakyllSite usr grp siteName aliases =
     directory = parent </> "_site"
 
 -- this is very crude...
-installGhc783 :: Property NoInfo
-installGhc783 = scriptProperty [ "wget http://www.haskell.org/ghc/dist/7.8.3/ghc-7.8.3-x86_64-unknown-linux-deb7.tar.bz2"
-                               , "tar xvfj ghc-7.8.3-x86_64-unknown-linux-deb7.tar.bz2"
-                               , "cd ghc-7.8.3"
-                               , "./configure"
-                               , "make install"
-                               ]
+installGhc783 :: Property HasInfo
+installGhc783 = propertyList "installing ghc-7.8.3 from tarball" $ props
+                & Apt.installed [ "build-essential" ]
+                & scriptProperty [ "wget http://www.haskell.org/ghc/dist/7.8.3/ghc-7.8.3-x86_64-unknown-linux-deb7.tar.bz2"
+                                 , "tar xvfj ghc-7.8.3-x86_64-unknown-linux-deb7.tar.bz2"
+                                 , "cd ghc-7.8.3"
+                                 , "./configure"
+                                 , "make install"
+                                 ]
 
 -- this is too...
 installLein :: Property NoInfo
