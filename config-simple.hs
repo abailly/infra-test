@@ -178,6 +178,7 @@ devhost = propertyList "creating devserver configuration" $ props
           & Ssh.knownExternalHost "bitbucket.org" "build"
           & Ssh.authorizedKeys "build" (Context "dev")
           & Git.cloned "build" "git@bitbucket.org:capitalmatch/app.git" "/home/build/app" (Just "master")
+          & File.fileHasPubContent "dev/app-git-config" "/home/build/app/.git/config"
           & installEmacs4Haskell "build"
           & configureEmacs "build"
 

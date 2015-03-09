@@ -1,10 +1,10 @@
 module Propellor.Property.File where
 
-import Propellor
-import Utility.FileMode
+import           Propellor
+import           Utility.FileMode
 
-import System.Posix.Files
-import System.PosixCompat.Types
+import           System.Posix.Files
+import           System.PosixCompat.Types
 
 type Line = String
 
@@ -12,6 +12,13 @@ type Line = String
 hasContent :: FilePath -> [Line] -> Property NoInfo
 f `hasContent` newcontent = fileProperty ("replace " ++ f)
 	(\_oldcontent -> newcontent) f
+
+-- | Ensures a file has content that comes from pubdata
+-- the files permissions are probably the default for the user
+fileHasPubContent :: FilePath -> FilePath -> Property NoInfo
+fileHasPubContent source target = property  ("setting file " <> target <> " to " <> source ) $ liftIO $ (copyFile (sourcePath <> source) target >> return MadeChange ) `catchIO` const (return FailedChange)
+  where sourcePath = "pubdata/"
+
 
 -- | Ensures a file has contents that comes from PrivData.
 --
@@ -36,9 +43,9 @@ hasPrivContentExposedFrom :: (IsContext c, IsPrivDataSource s) => s -> FilePath 
 hasPrivContentExposedFrom = hasPrivContent' writeFile
 
 hasPrivContent' :: (IsContext c, IsPrivDataSource s) => (String -> FilePath -> IO ()) -> s -> FilePath -> c -> Property HasInfo
-hasPrivContent' writer source f context = 
-	withPrivData source context $ \getcontent -> 
-		property desc $ getcontent $ \privcontent -> 
+hasPrivContent' writer source f context =
+	withPrivData source context $ \getcontent ->
+		property desc $ getcontent $ \privcontent ->
 			ensureProperty $ fileProperty' writer desc
 				(\_oldcontent -> lines privcontent) f
   where
@@ -61,7 +68,7 @@ f `lacksLine` l = fileProperty (f ++ " remove: " ++ l) (filter (/= l)) f
 
 -- | Removes a file. Does not remove symlinks or non-plain-files.
 notPresent :: FilePath -> Property NoInfo
-notPresent f = check (doesFileExist f) $ property (f ++ " not present") $ 
+notPresent f = check (doesFileExist f) $ property (f ++ " not present") $
 	makeChange $ nukeFile f
 
 fileProperty :: Desc -> ([Line] -> [Line]) -> FilePath -> Property NoInfo
