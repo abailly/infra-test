@@ -85,9 +85,8 @@ hosts =
           & File.mode "/home/build/capital-match/hooks/post-receive" (combineModes  (ownerWriteMode:readModes ++ executeModes))
 
         , host "dev.capital-match.com"
-          -- TODO fix host key to some known value so that it nver changes in known_hosts files
-          & devhost
           & installGhc783
+          & devhost
           & installJava
           & installLein
 
