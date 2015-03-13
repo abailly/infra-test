@@ -6,7 +6,7 @@ import           System.Posix.Files
 import           Utility.FileMode
 
 
-import           Capital.Property.Docker   (dockerAuthTokenFor,
+import           Capital.Property.Docker   (createImage, dockerAuthTokenFor,
                                             hasDataContainer,
                                             installLatestDocker)
 import           Capital.Property.Firewall (firewallHttpsDockerSsh)
@@ -39,13 +39,13 @@ lendingHost = propertyList "creating lending.capital-match.com configuration" $ 
     & User.accountFor "build"
     & User.hasGroup "build" "docker"
     & Sudo.binaryEnabledFor "/usr/bin/docker" "build"
-    & Ssh.knownExternalHost "bitbucket.org" "build"
     & Ssh.authorizedKeys "build" (Context "beta.capital-match.com") -- TODO disable or have separate keys for production
     & dockerAuthTokenFor "build"
     & File.dirExists nginxSitesPath
     & fileHasContentsFrom "lending/server" (nginxSitesPath </> "server")
     & fileHasContentsFrom "lending/startnginx.sh" (buildHome </> "startnginx.sh")
-    & hasDataContainer "cm-data"
+    & createImage dataImage "lending/cmdata-image"
+    & hasDataContainer "cm-data" dataImage
     & Cmd.userScriptProperty deployer ["./startnginx.sh"]
 
   where
@@ -54,6 +54,7 @@ lendingHost = propertyList "creating lending.capital-match.com configuration" $ 
      nginxSitesPath = buildHome <> "nginxconf/sites-enabled"
      certPath = "/etc/nginx/certs/"
      restrictToOwner path fileName = (path <> fileName) `File.mode` combineModes [ownerWriteMode, ownerReadMode]
+     dataImage = "capitalatch/data:1.0"
      writeToCertPath fileName tok = (writeFile (certPath <> fileName) tok >> return MadeChange) `catchIO` const (return FailedChange)
      writeSslKey privFile context = writePrivFile privFile context "ssl.key" "setting nginx private key"
      writeCertificateChain privFile context = writePrivFile privFile context "ssl-unified.crt" "setting nginx certificate chain"
