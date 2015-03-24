@@ -1,4 +1,13 @@
-propellor (2.2.0) UNRELEASED; urgency=medium
+propellor (2.2.1) unstable; urgency=medium
+
+  * userScriptProperty now passes --shell /bin/sh, so it can be used
+    even for users with nonstandard shells.
+  * Fix bug in docker propellor shim setup introduced in last release,
+    which broke provisioning of new docker containers.
+
+ -- Joey Hess <id@joeyh.name>  Thu, 12 Mar 2015 20:08:34 -0400
+
+propellor (2.2.0) unstable; urgency=medium
 
   * When running shimmed (eg in a docker container),
     improve process name visible in ps.
@@ -7,7 +16,7 @@ propellor (2.2.0) UNRELEASED; urgency=medium
   * Propellor now builds itself, and gets its build dependencies installed
     when deploying to a new host, without needing the Makefile.
 
- -- Joey Hess <id@joeyh.name>  Mon, 16 Feb 2015 19:00:48 -0400
+ -- Joey Hess <id@joeyh.name>  Mon, 09 Mar 2015 12:02:31 -0400
 
 propellor (2.1.0) unstable; urgency=medium
 
