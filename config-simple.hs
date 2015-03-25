@@ -176,9 +176,9 @@ devhost = propertyList "creating devserver configuration" $ props
           & File.containsLine "/home/build/.bash_profile" "alias g=git"
           & Git.configuredUser "build" "Igitur Ventures Ltd." "igitur@igitur.io"
           & Ssh.knownExternalHost "bitbucket.org" "build"
-          & Ssh.knownExternalHost "beta.capital-match.org" "build"
+          & Ssh.knownExternalHost "beta.capital-match.com" "build"
           & Ssh.authorizedKeys "build" (Context "dev")
-          & Git.cloned "build" "ssh://build@beta.capital-match.org/~/capital-match" "/home/build/app" (Just "master")
+          & Git.cloned "build" "ssh://build@beta.capital-match.com/~/capital-match" "/home/build/app" (Just "master")
           & File.hasPubContent "dev/app-git-config" "/home/build/app/.git/config"
           & installEmacs4Haskell "build"
           -- & configureEmacs "build"
