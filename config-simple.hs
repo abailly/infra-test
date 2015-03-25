@@ -90,8 +90,8 @@ hosts =
         , host "angel"
           & installGhc783
           & devhost
-          & installJava
-          & installLein
+          -- & installJava
+          -- & installLein
 
         , host "test.atdd.io"
           & Docker.installed
@@ -180,7 +180,7 @@ devhost = propertyList "creating devserver configuration" $ props
           & Git.cloned "build" "ssh://build@128.199.237.250/~/capital-match" "/home/build/app" (Just "master")
           & File.hasPubContent "dev/app-git-config" "/home/build/app/.git/config"
           & installEmacs4Haskell "build"
-          & configureEmacs "build"
+          -- & configureEmacs "build"
 
           -- configure docker authent to pull images from dockerhub
           & dockerAuthTokenFor "build"
