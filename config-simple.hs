@@ -316,7 +316,8 @@ installEmacs4Haskell user = property ("installing emacs and cabal packages for h
     , Apt.installed [ "emacs24", "zlib1g-dev" ]
     , Cabal.installed user [ "Cabal-1.20.0.3", "cabal-install-1.20.0.3"]
     , Cabal.updated user
-    , Cabal.installed user ["happy", "alex", "shake", "ghc-mod", "stylish-haskell" ]
+    , Cabal.installed user ["happy", "alex", "shake"]
+    , Cabal.toolsInstalledInSandbox user "emacs-tools" ["ghc-mod", "stylish-haskell" ]
     ]
 
 configureEmacs :: UserName -> Property NoInfo
