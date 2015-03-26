@@ -212,9 +212,11 @@ standardHakyllSite usr grp siteName aliases =
 -- this is very crude...
 installGhc783 :: Property HasInfo
 installGhc783 = propertyList "installing ghc-7.8.3 from apt" $ props
-                & scriptProperty ["add-apt-repository -y ppa:webupd8team/java"]
-                & Apt.installed [ "build-essential" ]
-{-                & scriptProperty [ "wget http://www.haskell.org/ghc/dist/7.8.3/ghc-7.8.3-x86_64-unknown-linux-deb7.tar.bz2"
+                & scriptProperty ["add-apt-repository -y ppa:hvr/ghc "]
+                & Apt.update
+                & Apt.installed [ "build-essential", "ghc-7.8.3", "cabal-install-1.20", "alex", "happy" ]
+                & File.containsLine "/home/build/.bash_profile" "PATH=/home/curry/.cabal/bin:/opt/cabal/1.20/bin:/opt/ghc/7.8.3/bin:$PATH"
+{-                & scriptProperty [ "wget -CN http://www.haskell.org/ghc/dist/7.8.3/ghc-7.8.3-x86_64-unknown-linux-deb7.tar.bz2"
                                  , "tar xvfj ghc-7.8.3-x86_64-unknown-linux-deb7.tar.bz2"
                                  , "cd ghc-7.8.3"
                                  , "./configure"
