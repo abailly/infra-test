@@ -28,6 +28,10 @@ installed user pkgs = prop
 	prop = property ("install packages " ++ pkgList) $ ensureProperty $
 		   userScriptProperty user [ "cabal install " ++ pkgList  ]
 
+
+-- sandBoxed :: UserName -> FilePath -> Propert NoInfo
+
+
 toolsInstalledInSandbox :: UserName -> FilePath -> [ PackageName] -> Property NoInfo
 toolsInstalledInSandbox user path pkgs = prop
   where
@@ -35,5 +39,6 @@ toolsInstalledInSandbox user path pkgs = prop
 	prop = property ("install packages " ++ pkgList) $ ensureProperty $
 		   userScriptProperty user ["mkdir -p " <> path,
                                             "cd " <> path,
-                                            "cabal sandbox init", -- might fail on second run
-                                            "cabal install " ++ pkgList  ]
+                                            cabal <> "sandbox init", -- might fail on second run
+                                            cabal <> "install " ++ pkgList  ]
+        cabal = "/home/build/.cabal/bin/cabal "
