@@ -54,8 +54,8 @@ hosts =
           & Ssh.knownExternalHost "bitbucket.org" "build"
           & Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
           & Sudo.binaryEnabledFor "/usr/bin/docker" "build"
-          -- configure ci
-          & Git.clonedBare "build" "git@bitbucket.org:capitalmatch/ci.git" "/home/build/ci.git"
+          -- configure ci. don't clone non-existant repository... It will delete the one present and there will be no repository at all.
+          -- & Git.clonedBare "build" "git@bitbucket.org:capitalmatch/ci.git" "/home/build/ci.git"
           & File.hasContent "/home/build/ci.git/hooks/post-receive"
           [ "#!/bin/sh"
           , "read START STOP BRANCH"
@@ -82,7 +82,7 @@ hosts =
           & File.mode "/home/build/capital-match/hooks/post-receive" (combineModes  (ownerWriteMode:readModes ++ executeModes))
           & File.dirExists "/home/build/bin"
           & File.containsLine "/home/build/.bash_profile" "PATH=/home/build/bin:$PATH"
-          & File.hasPubContent "beta/docker-rm-stopped-containers-and-images.sh" "/home/build/docker-rm-stopped-containers-and-images.sh"
+          & File.hasPubContent "beta/docker-rm-stopped-containers-and-images.sh" "/home/build/bin/docker-rm-stopped-containers-and-images.sh"
 
 
         , host "dev.capital-match.com"
