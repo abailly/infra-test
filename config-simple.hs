@@ -209,21 +209,15 @@ standardHakyllSite usr grp siteName aliases =
     parent = "/srv/nono-data" </> siteName
     directory = parent </> "_site"
 
--- this is very crude...
+-- this is ok-ish, same as Dockerfiles
 installGhc783 :: Property HasInfo
 installGhc783 = propertyList "installing ghc-7.8.3 from apt" $ props
                 & scriptProperty ["add-apt-repository -y ppa:hvr/ghc "]
                 & Apt.update
                 & Apt.installed [ "build-essential", "ghc-7.8.3", "cabal-install-1.20", "alex", "happy" ]
                 & File.containsLine "/home/build/.bash_profile" "PATH=/home/curry/.cabal/bin:/opt/cabal/1.20/bin:/opt/ghc/7.8.3/bin:$PATH"
-{-                & scriptProperty [ "wget -CN http://www.haskell.org/ghc/dist/7.8.3/ghc-7.8.3-x86_64-unknown-linux-deb7.tar.bz2"
-                                 , "tar xvfj ghc-7.8.3-x86_64-unknown-linux-deb7.tar.bz2"
-                                 , "cd ghc-7.8.3"
-                                 , "./configure"
-                                 , "make install"
-                                 ]-}
 
--- this is too...
+-- this is crude
 installLein :: Property NoInfo
 installLein = scriptProperty [ "wget -O /usr/local/bin/lein https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein"
                              , "chmod 0755 /usr/local/bin/lein"
