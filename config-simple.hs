@@ -211,14 +211,15 @@ standardHakyllSite usr grp siteName aliases =
 
 -- this is very crude...
 installGhc783 :: Property HasInfo
-installGhc783 = propertyList "installing ghc-7.8.3 from tarball" $ props
+installGhc783 = propertyList "installing ghc-7.8.3 from apt" $ props
+                & scriptProperty ["add-apt-repository -y ppa:webupd8team/java"]
                 & Apt.installed [ "build-essential" ]
-                & scriptProperty [ "wget http://www.haskell.org/ghc/dist/7.8.3/ghc-7.8.3-x86_64-unknown-linux-deb7.tar.bz2"
+{-                & scriptProperty [ "wget http://www.haskell.org/ghc/dist/7.8.3/ghc-7.8.3-x86_64-unknown-linux-deb7.tar.bz2"
                                  , "tar xvfj ghc-7.8.3-x86_64-unknown-linux-deb7.tar.bz2"
                                  , "cd ghc-7.8.3"
                                  , "./configure"
                                  , "make install"
-                                 ]
+                                 ]-}
 
 -- this is too...
 installLein :: Property NoInfo
@@ -325,7 +326,7 @@ installEmacs4Haskell user = property ("installing emacs and cabal packages for h
     , Cabal.installed user [ "Cabal-1.20.0.3", "cabal-install-1.20.0.3"]
     , Cabal.updated user
     , Cabal.installed user ["happy", "alex", "shake"]
-    , Cabal.toolsInstalledInSandbox user "emacs-tools" ["ghc-mod", "stylish-haskell" ]
+--    , Cabal.toolsInstalledInSandbox user "emacs-tools" ["ghc-mod", "stylish-haskell" ]
     ]
 
 configureEmacs :: UserName -> Property NoInfo
