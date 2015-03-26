@@ -188,7 +188,7 @@ devhost = propertyList "creating devserver configuration" $ props
           & Git.cloned "build" "ssh://build@beta.capital-match.com/~/capital-match" "/home/build/app" (Just "master")
           & File.hasPubContent "dev/app-git-config" "/home/build/app/.git/config"
           & installEmacs4Haskell "build"
-          -- & configureEmacs "build"
+          & configureEmacs "build"
 
           -- configure docker authent to pull images from dockerhub
           & dockerAuthTokenFor "build"
