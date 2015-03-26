@@ -80,6 +80,10 @@ hosts =
           & File.hasContent "/home/build/capital-match/hooks/post-receive"
           ["#!/bin/sh","#set -x","#set -e","read START STOP BRANCH","echo \"branch: $BRANCH\"","# do not send non review branches to CI","if expr \"$BRANCH\" : '.*/review' ; then ","  # assume docker is in path, we have right to use it and CI container is built","  docker run ci_server addpatch --name=$STOP --host=beta.capital-match.com","elif expr \"$BRANCH\" : '.*/master' ; then ","  if [ -f /home/build/.app.cid ]; then","    docker kill $(cat /home/build/.app.cid)","    rm /home/build/.app.cid","  fi","  # run as build user","  docker run -d --cidfile=/home/build/.app.cid -p 8080:8080 -v /home/build/data:/data capitalmatch/app:latest","  if [ -f /home/build/.nginx.cid ]; then","    docker kill $(cat /home/build/.nginx.cid)","    rm /home/build/.nginx.cid","  fi","  # clone or pull nginx config as build user","  export NGINXCONF=/home/build/nginxconf/nginx","  if [ -d /home/build/nginxconf ]; then","    cd /home/build/nginxconf && git pull origin master","  else ","    cd /home/build && git clone capital-match nginxconf","  fi","  docker run -d --cidfile=/home/build/.nginx.cid -p 80:80 -p 443:443 -v $NGINXCONF/nginx.conf:/etc/nginx/nginx.conf -v $NGINXCONF/sites-enabled:/etc/nginx/sites-enabled -v $NGINXCONF/certs:/etc/nginx/certs -v $NGINXCONF/logs:/var/log/nginx capital/nginx","fi","if [ -x ./hooks/git-slack-hook ]; then","    echo \"$START $STOP $BRANCH\" | ./hooks/git-slack-hook", "fi"]
           & File.mode "/home/build/capital-match/hooks/post-receive" (combineModes  (ownerWriteMode:readModes ++ executeModes))
+          & File.dirExists "/home/build/bin"
+          & File.containsLine "/home/build/.bash_profile" "PATH=/home/build/bin:$PATH"
+          & File.hasPubContent "beta/docker-rm-stopped-containers-and-images.sh" "/home/build/docker-rm-stopped-containers-and-images.sh"
+
 
         , host "dev.capital-match.com"
           & installGhc783
