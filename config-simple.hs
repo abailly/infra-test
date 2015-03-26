@@ -88,7 +88,7 @@ hosts =
           & installLein
 
         , host "angel"
-          & installGhc783
+          -- & installGhc783
           & devhost
           -- & installJava
           -- & installLein
