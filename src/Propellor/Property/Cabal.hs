@@ -33,12 +33,15 @@ installed user pkgs = prop
 
 
 toolsInstalledInSandbox :: UserName -> FilePath -> [ PackageName] -> Property NoInfo
-toolsInstalledInSandbox user path pkgs = prop
+toolsInstalledInSandbox user path pkgs = propertyList "Install packages in sandbox" [packageProp, bash_profile]
   where
 	pkgList =  concat (intersperse " " (map shellEscape pkgs))
-	prop = property ("install packages " ++ pkgList) $ ensureProperty $
-		   userScriptProperty user ["mkdir -p " <> path,
-                                            "cd " <> path,
-                                            cabal <> "sandbox init", -- might fail on second run
-                                            cabal <> "install " ++ pkgList  ]
-        cabal = "/home/build/.cabal/bin/cabal "
+	packageProp = userScriptProperty user ["mkdir -p " <> path,
+                                               "cd " <> path,
+                                               cabal <> "sandbox init", -- might fail on second run
+                                               cabal <> "install " ++ pkgList  ]
+        bash_profile = File.containsLine (homeDir </> ".bash_profile") toolPath
+
+        toolPath = "PATH=" <> path </> ".cabal-sandbox/bin:$PATH"
+        cabal = "/home" </> user </> ".cabal/bin/cabal "
+        homeDir = "/home" </> user
