@@ -7,26 +7,21 @@ import           Propellor.CmdLine
 import           System.Posix.Files
 import           Utility.FileMode
 
-import qualified Propellor.Property.Apache as Apache
-import qualified Propellor.Property.Apt    as Apt
-import qualified Propellor.Property.Cabal  as Cabal
-import qualified Propellor.Property.File   as File
--- import qualified Propellor.Property.Network as Network
---import qualified Propellor.Property.Cron     as Cron
-import qualified Propellor.Property.Group  as Group
-import qualified Propellor.Property.Ssh    as Ssh
-import qualified Propellor.Property.Sudo   as Sudo
-import qualified Propellor.Property.User   as User
---import qualified Propellor.Property.Hostname as Hostname
---import qualified Propellor.Property.Tor as Tor
 import           Capital.Property.Docker
 import           Capital.Property.Firewall (firewallHttpsDockerSsh,
                                             openDevHttpPorts)
 import           Capital.Property.Locale
+import qualified Propellor.Property.Apache as Apache
+import qualified Propellor.Property.Apt    as Apt
+import qualified Propellor.Property.Cabal  as Cabal
 import qualified Propellor.Property.Docker as Docker
 import           Propellor.Property.Fig    as Fig
+import qualified Propellor.Property.File   as File
 import qualified Propellor.Property.Git    as Git
-
+import qualified Propellor.Property.Group  as Group
+import qualified Propellor.Property.Ssh    as Ssh
+import qualified Propellor.Property.Sudo   as Sudo
+import qualified Propellor.Property.User   as User
 
 main :: IO ()
 main = defaultMain hosts
@@ -44,7 +39,7 @@ hosts =
           & User.accountFor "build"
           & User.hasGroup "build" "docker"
           & Ssh.keyImported SshRsa "build" (Context "beta.capital-match.com")
-          & File.containsLines "/home/build/.ssh/config"
+          & File.containsLines  "/home/build/.ssh/config"
           [ "Host bitbucket.org"
           , "\tUser git"
           , "\tHostname bitbucket.org"
@@ -54,7 +49,7 @@ hosts =
           & Ssh.knownExternalHost "bitbucket.org" "build"
           & Ssh.authorizedKeys "build" (Context "beta.capital-match.com")
           & Sudo.binaryEnabledFor "/usr/bin/docker" "build"
-          -- configure ci. don't clone non-existant repository... It will delete the one present and there will be no repository at all.
+          -- configure ci. don't clone non-existant repository. It will delete the one present and there will be no repository at all.
           -- & Git.clonedBare "build" "git@bitbucket.org:capitalmatch/ci.git" "/home/build/ci.git"
           & File.hasContent "/home/build/ci.git/hooks/post-receive"
           [ "#!/bin/sh"
@@ -219,7 +214,10 @@ installGhc783 = propertyList "installing ghc-7.8.3 from apt" $ props
                 & scriptProperty ["add-apt-repository -y ppa:hvr/ghc "]
                 & Apt.update
                 & Apt.installed [ "build-essential", "ghc-7.8.3", "cabal-install-1.20", "alex", "happy" ]
+                & scriptProperty ["ln -s /opt/cabal/1.20/bin/cabal /usr/local/bin/cabal"] -- TODO make property around System.Posix.File.createSymbolicLink
+                & scriptProperty ["ln -s /opt/ghc/7.8.3/bin/ghc /usr/local/bin/ghc"]
                 & File.containsLine "/home/build/.bash_profile" "PATH=/home/curry/.cabal/bin:/opt/cabal/1.20/bin:/opt/ghc/7.8.3/bin:$PATH"
+
 
 -- this is crude
 installLein :: Property NoInfo
