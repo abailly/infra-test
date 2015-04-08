@@ -14,6 +14,7 @@ import           Capital.Property.Locale
 import qualified Propellor.Property.Apache as Apache
 import qualified Propellor.Property.Apt    as Apt
 import qualified Propellor.Property.Cabal  as Cabal
+import qualified Propellor.Property.Cron   as Cron
 import qualified Propellor.Property.Docker as Docker
 import           Propellor.Property.Fig    as Fig
 import qualified Propellor.Property.File   as File
@@ -78,6 +79,7 @@ hosts =
           & File.dirExists "/home/build/bin"
           & File.containsLine "/home/build/.bash_profile" "PATH=/home/build/bin:$PATH"
           & File.hasPubContent "beta/docker-rm-stopped-containers-and-images.sh" "/home/build/bin/docker-rm-stopped-containers-and-images.sh"
+          & Cron.niceJob "removing old docker images and containers" Cron.Weekly "build" "/home/build/bin" "/home/build/bin/docker-rm-stopped-containers-and-images.sh"
 
 
         , host "dev.capital-match.com"
