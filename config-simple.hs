@@ -216,7 +216,7 @@ installGhc783 = propertyList "installing ghc-7.8.3 from apt" $ props
                 & scriptProperty ["add-apt-repository -y ppa:hvr/ghc "]
                 & Apt.update
                 & Apt.installed [ "build-essential", "ghc-7.8.3", "cabal-install-1.20", "alex", "happy" ]
-                & scriptProperty ["ln -sf /opt/cabal/1.20/bin/* /usr/local/bin/*"] -- TODO make property around System.Posix.File.createSymbolicLink
+                & scriptProperty ["ln -sf /opt/cabal/1.20/bin/* /usr/local/bin/"] -- TODO make property around System.Posix.File.createSymbolicLink
                 & scriptProperty ["ln -sf /opt/ghc/7.8.3/bin/* /usr/local/bin/"]
                 & File.containsLine "/home/build/.bash_profile" "PATH=/home/curry/.cabal/bin:/opt/cabal/1.20/bin:/opt/ghc/7.8.3/bin:$PATH"
 
@@ -323,11 +323,13 @@ installEmacs4Haskell user = property ("installing emacs and cabal packages for h
   ensureProperty $ combineProperties "installing emacs and supporting haskell packages"
     [ Cabal.updated user
     , Apt.installed [ "emacs24", "zlib1g-dev" ]
+    , File.containsLine (home </> ".bash_profile") ("PATH=" <> home </> ".cabal/bin")
     --, Cabal.installed user [ "Cabal-1.20.0.3", "cabal-install-1.20.0.3"]
-    , Cabal.updated user
-    , Cabal.toolsInstalledInSandbox user ("/home" </> user </> "haskell-tools") ["happy", "alex", "shake"]
+    , Cabal.toolsInstalledInSandbox user ("/home" </> user </> "haskell-tools") ["shake"]
     , Cabal.toolsInstalledInSandbox user ("/home" </> user </> "emacs-tools") ["ghc-mod", "stylish-haskell" ]
     ]
+  where
+    home = "/home" </> user-- liftIO $ User.homedir (user) didn't compile, TODO fix.
 
 configureEmacs :: UserName -> Property NoInfo
 configureEmacs user = property ("configuring emacs for haskell development for user " ++ user) $ do
