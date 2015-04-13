@@ -6,7 +6,6 @@ import           Propellor
 import           Propellor.Property.File as File
 import           Propellor.Property.User
 
-import           Data.Monoid             ((<>))
 import           Utility.SafeCommand
 
 type PackageName = String
@@ -42,6 +41,6 @@ toolsInstalledInSandbox user path pkgs = propertyList "Install packages in sandb
                                                cabal <> "install " ++ pkgList  ]
         bash_profile = File.containsLine (homeDir </> ".bash_profile") toolPath
 
-        toolPath = "PATH=" <> path </> ".cabal-sandbox/bin:$PATH"
-        cabal = "/home" </> user </> ".cabal/bin/cabal "
+        toolPath = "PATH=" <> path </> "/opt/cabal/1.20/bin:$PATH"
+        cabal = "cabal" -- make it easy to use custom cabal
         homeDir = "/home" </> user
