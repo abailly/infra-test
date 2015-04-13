@@ -42,5 +42,5 @@ toolsInstalledInSandbox user path pkgs = propertyList "Install packages in sandb
         bash_profile = File.containsLine (homeDir </> ".bash_profile") toolPath
 
         toolPath = "PATH=" <> path </> ":$PATH"
-        cabal = "cabal" -- make it easy to use custom cabal
+        cabal = "cabal " -- make it easy to use custom cabal
         homeDir = "/home" </> user
