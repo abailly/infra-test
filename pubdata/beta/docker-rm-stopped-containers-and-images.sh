@@ -7,3 +7,4 @@ cd /home/build/ci
 fig stop
 fig build
 fig up -d
+i
