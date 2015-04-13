@@ -323,7 +323,7 @@ installEmacs4Haskell user = property ("installing emacs and cabal packages for h
   ensureProperty $ combineProperties "installing emacs and supporting haskell packages"
     [ Cabal.updated user
     , Apt.installed [ "emacs24", "zlib1g-dev" ]
-    , Cabal.installed user [ "Cabal-1.20.0.3", "cabal-install-1.20.0.3"]
+    --, Cabal.installed user [ "Cabal-1.20.0.3", "cabal-install-1.20.0.3"]
     , Cabal.updated user
     , Cabal.toolsInstalledInSandbox user ("/home" </> user </> "haskell-tools") ["happy", "alex", "shake"]
     , Cabal.toolsInstalledInSandbox user ("/home" </> user </> "emacs-tools") ["ghc-mod", "stylish-haskell" ]
