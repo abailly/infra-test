@@ -322,7 +322,7 @@ installEmacs4Haskell user = property ("installing emacs and cabal packages for h
   ensureProperty $ combineProperties "installing emacs and supporting haskell packages"
     [ Cabal.updated user
     , Apt.installed [ "emacs24", "zlib1g-dev" ]
-    , Cabal.installed "build" ["Cabal-1.20.0.3"]
+    , userScriptProperty "build" [cabal <> withcompiler <> "-j install " <> "Cabal-1.20.0.3"]
     , Cabal.updated user
     , File.containsLine (home </> ".bash_profile") ("export PATH=" <> home </> ".cabal/bin:$PATH")
     , Cabal.toolsInstalledInSandbox user ("/home" </> user </> "haskell-tools") ["shake"]
@@ -330,6 +330,9 @@ installEmacs4Haskell user = property ("installing emacs and cabal packages for h
     ]
   where
     home = "/home" </> user-- liftIO $ User.homedir (user) didn't compile, TODO fix.
+    cabal = "/opt/cabal/1.20/bin/cabal " -- newer cabal then the one used by propellor
+    withcompiler = "--with-compiler=/opt/ghc/7.8.3/bin/ghc " -- newer ghc than 7.6.3 used by propellor
+
 
 configureEmacs :: UserName -> Property NoInfo
 configureEmacs user = property ("configuring emacs for haskell development for user " ++ user) $ do
