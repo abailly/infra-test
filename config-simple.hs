@@ -322,9 +322,8 @@ installEmacs4Haskell user = property ("installing emacs and cabal packages for h
     [ Cabal.updated user
     , Apt.installed [ "emacs24", "zlib1g-dev" ]
     , File.containsLine (home </> ".bash_profile") ("export PATH=" <> home </> ".cabal/bin:$PATH")
-    --, Cabal.installed user [ "Cabal-1.20.0.3", "cabal-install-1.20.0.3"]
     , Cabal.toolsInstalledInSandbox user ("/home" </> user </> "haskell-tools") ["shake"]
---    , Cabal.toolsInstalledInSandbox user ("/home" </> user </> "emacs-tools") ["ghc-mod", "stylish-haskell" ]
+    , Cabal.toolsInstalledInSandbox user ("/home" </> user </> "emacs-tools") ["ghc-mod", "stylish-haskell" ]
     ]
   where
     home = "/home" </> user-- liftIO $ User.homedir (user) didn't compile, TODO fix.
