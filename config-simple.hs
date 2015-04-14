@@ -161,7 +161,7 @@ devhost = propertyList "creating devserver configuration" $ props
           & File.containsLine "/etc/gai.conf" "precedence ::ffff:0:0/96 100"
           & setDefaultLocale en_us_UTF_8
           & Git.installed
-          & installLatestDocker
+          -- & installLatestDocker
           & Fig.installed
           -- configure user build
           & accountWithIds "build" 2020 2020

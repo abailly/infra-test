@@ -38,6 +38,7 @@ toolsInstalledInSandbox user path pkgs = propertyList "Install packages in sandb
 	packageProp = userScriptProperty user ["mkdir -p " <> path,
                                                "cd " <> path,
                                                cabal <> "sandbox init", -- just continues if there is already a sandbox
-                                               cabal <> "install " ++ pkgList  ]
+                                               cabal <> withcompiler <> "install " ++ pkgList  ]
 
-        cabal = "/opt/cabal/1.20/bin/cabal --with-compiler=/opt/ghc/7.8.3/bin/ghc " -- make it easy to use custom cabal
+        cabal = "/opt/cabal/1.20/bin/cabal "
+        withcompiler = "--with-compiler=/opt/ghc/7.8.3/bin/ghc " -- make it easy to use custom cabal
