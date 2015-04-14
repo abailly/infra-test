@@ -190,10 +190,26 @@ devhost = propertyList "creating devserver configuration" $ props
           & File.hasPubContent "dev/app-git-config" "/home/build/app/.git/config"
           & installEmacs4Haskell "build"
           & configureEmacs "build"
+          & compileCapitalMatch
 
           -- configure docker authent to pull images from dockerhub
           & dockerAuthTokenFor "build"
           & openDevHttpPorts
+
+compileCapitalMatch :: Property NoInfo
+compileCapitalMatch = userScriptProperty "build"
+                        ["cd " <> app
+                        ,cabal <> " sandbox init"
+                        ,cc <> "install --only-dependencies --only-tests"
+                        ,cc <> "build"
+                        ,cc <> "test"
+                       ]
+  where
+    cabal = "/opt/cabal/1.20/bin/cabal "
+    withcompiler = "--with-compiler=/opt/ghc/7.8.3/bin/ghc " -- make it easy to use custom cabal
+    cc = cabal <> " -j " <> withcompiler -- sandbox init does not need compiler and errors on -j flag.
+    app = "/home/build/app"
+
 
 -- | Configures a hakyll-generated site as a vhost served by apache
 standardHakyllSite :: UserName -> GroupName -> HostName -> [ HostName ] -> Property NoInfo
