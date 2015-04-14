@@ -41,4 +41,3 @@ toolsInstalledInSandbox user path pkgs = propertyList "Install packages in sandb
                                                cabal <> "install " ++ pkgList  ]
 
         cabal = "/opt/cabal/1.20/bin/cabal --with-compiler=/opt/ghc/7.8.3/bin/ghc " -- make it easy to use custom cabal
-        homeDir = "/home" </> user
