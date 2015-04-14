@@ -161,7 +161,7 @@ devhost = propertyList "creating devserver configuration" $ props
           & File.containsLine "/etc/gai.conf" "precedence ::ffff:0:0/96 100"
           & setDefaultLocale en_us_UTF_8
           & Git.installed
-          -- & installLatestDocker
+          & installLatestDocker
           & Fig.installed
           -- configure user build
           & accountWithIds "build" 2020 2020
@@ -189,7 +189,7 @@ devhost = propertyList "creating devserver configuration" $ props
           & Git.cloned "build" "ssh://build@beta.capital-match.com/~/capital-match" "/home/build/app" (Just "master")
           & File.hasPubContent "dev/app-git-config" "/home/build/app/.git/config"
           & installEmacs4Haskell "build"
-          -- & configureEmacs "build"
+          & configureEmacs "build"
 
           -- configure docker authent to pull images from dockerhub
           & dockerAuthTokenFor "build"
@@ -322,7 +322,8 @@ installEmacs4Haskell user = property ("installing emacs and cabal packages for h
   ensureProperty $ combineProperties "installing emacs and supporting haskell packages"
     [ Cabal.updated user
     , Apt.installed [ "emacs24", "zlib1g-dev" ]
-
+    , Cabal.installed "build" ["Cabal-1.20.0.3"]
+    , Cabal.updated user
     , File.containsLine (home </> ".bash_profile") ("export PATH=" <> home </> ".cabal/bin:$PATH")
     , Cabal.toolsInstalledInSandbox user ("/home" </> user </> "haskell-tools") ["shake"]
     , Cabal.toolsInstalledInSandbox user ("/home" </> user </> "emacs-tools") ["ghc-mod", "stylish-haskell" ]
