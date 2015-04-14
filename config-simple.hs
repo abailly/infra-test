@@ -200,7 +200,7 @@ compileCapitalMatch :: Property NoInfo
 compileCapitalMatch = userScriptProperty "build"
                         ["cd " <> app
                         ,cabal <> " sandbox init"
-                        ,cc <> "install --only-dependencies --only-tests"
+                        ,cc <> "install --only-dependencies --enable-tests"
                         ,cc <> "build"
                         ,cc <> "test"
                        ]
