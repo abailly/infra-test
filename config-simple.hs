@@ -201,8 +201,8 @@ compileCapitalMatch = userScriptProperty "build"
                         ["cd " <> app
                         ,cabal <> " sandbox init"
                         ,cc <> "install --only-dependencies --enable-tests"
-                        ,cc <> "build"
-                        ,cc <> "test"
+                        ,cabal <> "-j build"
+                        ,cabal <> "-j test"
                        ]
   where
     cabal = "/opt/cabal/1.20/bin/cabal "
