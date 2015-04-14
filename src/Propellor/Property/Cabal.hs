@@ -42,6 +42,6 @@ toolsInstalledInSandbox user path pkgs = propertyList "Install packages in sandb
 
         cabal = "/opt/cabal/1.20/bin/cabal "
         withcompiler = "--with-compiler=/opt/ghc/7.8.3/bin/ghc " -- make it easy to use custom cabal
-        bashProfile = File.containsLine (home </> ".bash_profile") ("export PATH=" <> path </> ".cabal/bin:$PATH")
+        bashProfile = File.containsLine (home </> ".bash_profile") ("export PATH=" <> path </> ".cabal-sandbox/bin:$PATH")
         home = "/home" </> user
 
