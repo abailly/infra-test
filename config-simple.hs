@@ -189,7 +189,7 @@ devhost = propertyList "creating devserver configuration" $ props
           & Git.cloned "build" "ssh://build@beta.capital-match.com/~/capital-match" "/home/build/app" (Just "master")
           & File.hasPubContent "dev/app-git-config" "/home/build/app/.git/config"
           & installEmacs4Haskell "build"
---          & configureEmacs "build"
+          & configureEmacs "build"
 
           -- configure docker authent to pull images from dockerhub
           & dockerAuthTokenFor "build"
@@ -323,10 +323,10 @@ installEmacs4Haskell user = property ("installing emacs and cabal packages for h
   ensureProperty $ combineProperties "installing emacs and supporting haskell packages"
     [ Cabal.updated user
     , Apt.installed [ "emacs24", "zlib1g-dev" ]
-    , File.containsLine (home </> ".bash_profile") ("PATH=" <> home </> ".cabal/bin")
+    , File.containsLine (home </> ".bash_profile") ("export PATH=" <> home </> ".cabal/bin:$PATH")
     --, Cabal.installed user [ "Cabal-1.20.0.3", "cabal-install-1.20.0.3"]
     , Cabal.toolsInstalledInSandbox user ("/home" </> user </> "haskell-tools") ["shake"]
-    , Cabal.toolsInstalledInSandbox user ("/home" </> user </> "emacs-tools") ["ghc-mod", "stylish-haskell" ]
+--    , Cabal.toolsInstalledInSandbox user ("/home" </> user </> "emacs-tools") ["ghc-mod", "stylish-haskell" ]
     ]
   where
     home = "/home" </> user-- liftIO $ User.homedir (user) didn't compile, TODO fix.
