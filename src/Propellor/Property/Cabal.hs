@@ -32,15 +32,13 @@ installed user pkgs = prop
 
 
 toolsInstalledInSandbox :: UserName -> FilePath -> [ PackageName] -> Property NoInfo
-toolsInstalledInSandbox user path pkgs = propertyList "Install packages in sandbox" [packageProp, bash_profile]
+toolsInstalledInSandbox user path pkgs = propertyList "Install packages in sandbox" [packageProp]
   where
 	pkgList =  concat (intersperse " " (map shellEscape pkgs))
 	packageProp = userScriptProperty user ["mkdir -p " <> path,
                                                "cd " <> path,
-                                               cabal <> "sandbox init", -- might fail on second run
+                                               cabal <> "sandbox init", -- just continues if there is already a sandbox
                                                cabal <> "install " ++ pkgList  ]
-        bash_profile = File.containsLine (homeDir </> ".bash_profile") toolPath
 
-        toolPath = "export PATH=" <> path </> ":$PATH"
-        cabal = "/opt/cabal/1.20/bin/cabal --with-compiler=/opt/ghc/7.8.3/bin/ghc" -- make it easy to use custom cabal
+        cabal = "/opt/cabal/1.20/bin/cabal --with-compiler=/opt/ghc/7.8.3/bin/ghc " -- make it easy to use custom cabal
         homeDir = "/home" </> user

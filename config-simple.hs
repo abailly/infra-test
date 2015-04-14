@@ -216,9 +216,7 @@ installGhc783 = propertyList "installing ghc-7.8.3 from apt" $ props
                 & scriptProperty ["add-apt-repository -y ppa:hvr/ghc "]
                 & Apt.update
                 & Apt.installed [ "build-essential", "ghc-7.8.3", "cabal-install-1.20", "alex", "happy" ]
-                -- & scriptProperty ["ln -sf /opt/cabal/1.20/bin/* /usr/local/bin/"] -- TODO make property around System.Posix.File.createSymbolicLink
-                -- & scriptProperty ["ln -sf /opt/ghc/7.8.3/bin/* /usr/local/bin/"]
-                & File.containsLine "/home/build/.bash_profile" "PATH=/home/curry/.cabal/bin:/opt/cabal/1.20/bin:/opt/ghc/7.8.3/bin:$PATH"
+                & File.containsLine "/home/build/.bash_profile" "export PATH=/home/build/.cabal/bin:/opt/cabal/1.20/bin:/opt/ghc/7.8.3/bin:$PATH"
 
 
 -- this is crude
