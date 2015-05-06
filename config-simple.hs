@@ -234,7 +234,7 @@ installGhc783 = propertyList "installing ghc-7.8.3 from apt" $ props
                 & Apt.update
                 & Apt.installed [ "build-essential", "ghc-7.8.3", "cabal-install-1.20", "alex", "happy" ]
                 -- First addition to bash profile. Adding just a line fails with File.hascontent on file does not exist
-                & File.containsLines "/home/build/.bash_profile" ["export PATH=/home/build/.cabal/bin:/opt/cabal/1.20/bin:/opt/ghc/7.8.3/bin:$PATH"]
+                & File.containsLines "/home/build/.bash_profile" ["export PATH=/opt/cabal/1.20/bin:/opt/ghc/7.8.3/bin:/home/build/.cabal/bin:$PATH"]
 
 
 -- this is crude
@@ -356,7 +356,7 @@ configureEmacs user = property ("configuring emacs for haskell development for u
   home <- liftIO $ User.homedir user
   ensureProperty $ combineProperties "creating emacs configuration"
     [ File.dirExists (home </> ".emacs.d")
-    , File.hasContent ("/root/.tmux.conf") [ "setw -g xterm-keys on" ]
+    , File.hasContent (home </> ".tmux.conf") [ "setw -g xterm-keys on" ]
     , File.ownerGroup (home </> ".emacs.d") user user
     , File.hasContent (home </> ".emacs.d/install-package.el")
       [ "(require 'package)"
@@ -370,7 +370,7 @@ configureEmacs user = property ("configuring emacs for haskell development for u
       , "(package-refresh-contents)"
       , "(mapc 'package-install pkg-to-install)"
       ]
-    , userScriptProperty user [ "emacs --batch --eval \"(defconst pkg-to-install '(flycheck auto-complete haskell-mode ghc projectile flx-ido clojure-mode))\" -l $HOME/.emacs.d/install-package.el" ]
+    , userScriptProperty user [ "emacs --batch --eval \"(defconst pkg-to-install '(flycheck auto-complete haskell-mode ghc projectile flx-ido clojure-mode paredit))\" -l $HOME/.emacs.d/install-package.el" ]
     , File.hasContent (home </> ".emacs")
       [ "(add-to-list 'exec-path \"~/.cabal/bin\")"
       , "(menu-bar-mode 0)"
