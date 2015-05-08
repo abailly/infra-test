@@ -202,6 +202,7 @@ compileCapitalMatch :: Property NoInfo
 compileCapitalMatch = userScriptProperty "build"
                         ["cd " <> app
                         ,cabal <> " sandbox init"
+                        ,cabal <> " install Cabal-1.20.0.3"
                         ,cc <> "install --only-dependencies --enable-tests"
                         ,cabal <> "-j build"
                         ,cabal <> "-j test"
@@ -233,9 +234,9 @@ installGhc783 :: Property HasInfo
 installGhc783 = propertyList "installing ghc-7.8.3 from apt" $ props
                 & scriptProperty ["add-apt-repository -y ppa:hvr/ghc "]
                 & Apt.update
-                & Apt.installed [ "build-essential", "ghc-7.8.3", "cabal-install-1.20", "alex", "happy" ]
+                & Apt.installed [ "build-essential", "ghc-7.8.3", "cabal-install-1.20.0.3", "alex", "happy" ]
                 -- First addition to bash profile. Adding just a line fails with File.hascontent on file does not exist
-                & File.containsLines "/home/build/.bash_profile" ["export PATH=/opt/cabal/1.20/bin:/opt/ghc/7.8.3/bin:/home/build/.cabal/bin:$PATH"]
+                & File.containsLine "/home/build/.bash_profile" "export PATH=/opt/cabal/1.20.0.3/bin:/opt/ghc/7.8.3/bin:/home/build/.cabal/bin:$PATH"
 
 
 -- this is crude
@@ -347,8 +348,8 @@ installEmacs4Haskell user = property ("installing emacs and cabal packages for h
     , Cabal.toolsInstalledInSandbox user ("/home" </> user </> "emacs-tools") ["ghc-mod", "stylish-haskell" ]
     ]
   where
-    home = "/home" </> user-- liftIO $ User.homedir (user) didn't compile, TODO fix.
-    cabal = "/opt/cabal/1.20/bin/cabal " -- newer cabal then the one used by propellor
+    home = "/home" </> user -- liftIO $ User.homedir (user) didn't compile, TODO fix.
+    cabal = "/opt/cabal/1.20.0.3/bin/cabal " -- newer cabal then the one used by propellor
     withcompiler = "--with-compiler=/opt/ghc/7.8.3/bin/ghc " -- newer ghc than 7.6.3 used by propellor
 
 
