@@ -191,6 +191,7 @@ devhost = propertyList "creating devserver configuration" $ props
           & File.hasPubContent "dev/app-git-config" "/home/build/app/.git/config"
           & installEmacs4Haskell "build"
           & configureEmacs "build"
+          & Apt.installed ["phantomjs"]
           & compileCapitalMatch
 
           -- configure docker authent to pull images from dockerhub
@@ -356,7 +357,12 @@ configureEmacs user = property ("configuring emacs for haskell development for u
   home <- liftIO $ User.homedir user
   ensureProperty $ combineProperties "creating emacs configuration"
     [ File.dirExists (home </> ".emacs.d")
-    , File.hasContent (home </> ".tmux.conf") [ "setw -g xterm-keys on" ]
+    , File.hasContent (home </> ".tmux.conf") [ "setw -g xterm-keys on"
+                                                -- replace C-b as prefix because it is useful in emacs
+                                              , "unbind C-b"
+                                              , "set -g prefix C-q"
+                                              , "bind C-q send-prefix"
+                                              ]
     , File.ownerGroup (home </> ".emacs.d") user user
     , File.hasContent (home </> ".emacs.d/install-package.el")
       [ "(require 'package)"
