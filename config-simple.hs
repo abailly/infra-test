@@ -166,6 +166,7 @@ devhost = propertyList "creating devserver configuration" $ props
           -- configure user build
           & accountWithIds "build" 2020 2020
           & User.hasGroup "build" "docker"
+          & pullDevBox
           & Ssh.keyImported SshRsa "build" (Context "dev")
           & File.containsLines "/home/build/.ssh/config"
           [ "Host bitbucket.org"
@@ -195,6 +196,14 @@ devhost = propertyList "creating devserver configuration" $ props
           -- configure docker authent to pull images from dockerhub
           & dockerAuthTokenFor "build"
           & openDevHttpPorts
+
+-- |Pull a devbox (docker image) while doing other thing like compiling the app.
+--  This takes a while, and uses just IO, while compileCapitalMatch etc. uses mostly CPU, so should go well together
+--  Set based development in a configuration script
+--  Start the box when you're ready 'docker run --name devbox -p 8080:22 capitalmatch/devbox'
+--  You can open more ports if you want to see the browser from your desktop, or use X2GO or ssh -X over port 22
+pullDevBox :: Property NoInfo
+pullDevBox = userScriptProperty "build" ["nohup docker pull capitalmatch/devbox &"]
 
 compileCapitalMatch :: Property NoInfo
 compileCapitalMatch = userScriptProperty "build"
