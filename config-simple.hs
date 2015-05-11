@@ -167,6 +167,8 @@ devhost = propertyList "creating devserver configuration" $ props
           -- configure user build
           & accountWithIds "build" 2020 2020
           & User.hasGroup "build" "docker"
+          -- configure docker authent to pull images from dockerhub
+          & dockerAuthTokenFor "build"
           & pullDevBox
           & Ssh.keyImported SshRsa "build" (Context "dev")
           & File.containsLines "/home/build/.ssh/config"
@@ -195,8 +197,6 @@ devhost = propertyList "creating devserver configuration" $ props
           & Apt.installed ["phantomjs"]
           & compileCapitalMatch
 
-          -- configure docker authent to pull images from dockerhub
-          & dockerAuthTokenFor "build"
           & openDevHttpPorts
 
 -- |Pull a devbox (docker image) while doing other thing like compiling the app.
