@@ -6,5 +6,6 @@ docker images | awk '{print $3}' | xargs --no-run-if-empty docker rmi
 cd /home/build/ci
 fig stop
 fig build
+# fig exec ? rm *.uuid
 fig up -d
-i
+
