@@ -5,7 +5,7 @@ docker images | awk '{print $3}' | xargs --no-run-if-empty docker rmi
 #restart ci
 cd /home/build/ci
 fig stop
+rm -rf /home/build/.ci/* # get rid of *.uuid files
 fig build
-# fig exec ? rm *.uuid
 fig up -d
 
