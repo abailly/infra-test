@@ -79,7 +79,7 @@ hosts =
           & File.dirExists "/home/build/bin"
           & File.containsLine "/home/build/.bash_profile" "PATH=/home/build/bin:$PATH"
           & File.hasPubContent "beta/docker-rm-stopped-containers-and-images.sh" "/home/build/bin/docker-rm-stopped-containers-and-images.sh"
-          & Cron.niceJob "removing old docker images and containers" Cron.Daily "build" "/home/build/bin" "/home/build/bin/docker-rm-stopped-containers-and-images.sh"
+          & Cron.niceJob "removing old docker images and containers" Cron.Daily "root" "/home/build/bin" "/home/build/bin/docker-rm-stopped-containers-and-images.sh"
 
           -- ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCxKU7llhJO+qAMTbUXyRIKFfcqwI9Ibv4NL4G+pf/Z6F7RIHMzoQcnr0c6te8b3KPm03hrVU64vAbkq21dHaBbn34218Nv1y3QB937cKyz64AgtKirHFcm0VOmJ7fiIkZ8N1/tCq8yqR7fq1y8GPVRFXuAaddczkJ4yBsx+tHxN0YVpE+0ejBE2aEPvw3HmwVCWYu27WeRj0kvwBD/jEmLtX+Xs6nG3H03Bj81PuHHcBV49UbmgYI2/Yf/4uy0S33uAoUvMeEiaTAcIRhIrdz8Bs7zLMCXRtrQfayDy/TM3kbN8z9tG9qc6C6xvOPzxsKauaXYmAY2e4WyTdaiXyIZ sark@sark
 
