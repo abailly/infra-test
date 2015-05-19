@@ -11,6 +11,7 @@ import           Capital.Property.Docker
 import           Capital.Property.Firewall (firewallHttpsDockerSsh,
                                             openDevHttpPorts)
 import           Capital.Property.Locale
+-- import           Capital.Hosts.Beta (betaHost)
 import qualified Propellor.Property.Apache as Apache
 import qualified Propellor.Property.Apt    as Apt
 import qualified Propellor.Property.Cabal  as Cabal
